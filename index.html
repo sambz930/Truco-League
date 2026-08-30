@@ -6,18 +6,14 @@
   <meta name="robots" content="noindex, nofollow">
   <title>🎴 Truco League - Verified Stats & Real-Time Sync System</title>
   
-  <!-- Web App Manifest -->
-  <!-- Icono para iOS (iPhone/iPad) -->
+  <!-- Web App Icons -->
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2583/2583344.png">
   <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2583/2583344.png">
 
-  <!-- Web App Manifest (Incluye iconos y configuración de Pantalla Completa Standalone) -->
-  <link rel="manifest" href="manifest.json">
-
-  <!-- Configuración de color para el navegador y barra de estado -->
+  <!-- Theme Color -->
   <meta name="theme-color" content="#0b0f19">
 
-  <!-- Soporte para iOS (Safari fullscreen y standalone) -->
+  <!-- iOS Support -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-touch-fullscreen" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -116,7 +112,7 @@
       db, auth, appId, collection, doc, setDoc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
     };
   </script>
-
+<script type="text/babel" src="./HallOfFame.js"></script>
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
@@ -274,6 +270,10 @@
       const [matchDeletePassword, setMatchDeletePassword] = useState('');
       const [matchDeleteError, setMatchDeleteError] = useState('');
 
+      const [selectedPlayerToDelete, setSelectedPlayerToDelete] = useState(null);
+      const [playerDeletePassword, setPlayerDeletePassword] = useState('');
+      const [playerDeleteError, setPlayerDeleteError] = useState('');
+
       const [h2hP1, setH2hP1] = useState('SAMU');
       const [h2hP2, setH2hP2] = useState('');
 
@@ -295,28 +295,54 @@
         setFeedback('🔗 ¡Link copiado al portapapeles!');
         setTimeout(() => setFeedback(''), 3000);
       };
-const handleBorrarJugadorIndividual = async (nombreJugador) => {
-    if (!confirm(`⚠️ ¿Eliminar a "${nombreJugador}" de la tabla y de Firebase?`)) return;
 
-    try {
-      const { db, appId, doc, deleteDoc } = window.TrucoDB || {};
-      const nombreUpper = nombreJugador.toUpperCase();
+      const handleBorrarJugadorIndividual = (nombreJugador) => {
+        setSelectedPlayerToDelete(nombreJugador);
+        setPlayerDeletePassword('');
+        setPlayerDeleteError('');
+      };
 
-      if (db) {
-        // 1. Borrar documento del jugador en Firestore
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'jugadores', nombreUpper));
-      }
+      const handleConfirmBorrarJugador = async (e) => {
+        e.preventDefault();
+        if (playerDeletePassword !== ADMIN_PASS && playerDeletePassword !== 'reiniciosoygay') {
+          setPlayerDeleteError('Contraseña de administrador incorrecta.');
+          return;
+        }
+        if (!selectedPlayerToDelete) return;
 
-      // 2. Actualizar el estado local
-      setJugadores(prev => prev.filter(j => j !== nombreUpper));
+        const nombreUpper = selectedPlayerToDelete.toUpperCase();
+        setIsSubmitting(true);
 
-      setFeedback(`🗑️ El jugador ${nombreUpper} ha sido eliminado.`);
-      setTimeout(() => setFeedback(''), 3000);
-    } catch (err) {
-      console.error("Error al borrar jugador:", err);
-      setFeedback('❌ Error al eliminar el jugador.');
-    }
-  };
+        try {
+          const { db, appId, doc, deleteDoc } = window.TrucoDB || {};
+          
+          const matchesToDelete = partidas.filter(
+            p => p.ganador === nombreUpper || p.perdedor === nombreUpper
+          );
+
+          if (db) {
+            for (const m of matchesToDelete) {
+              await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'partidas', m.id));
+            }
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'jugadores', nombreUpper));
+          }
+
+          setPartidas(prev => prev.filter(p => p.ganador !== nombreUpper && p.perdedor !== nombreUpper));
+          setJugadores(prev => prev.filter(j => j !== nombreUpper));
+
+          setSelectedPlayerToDelete(null);
+          setPlayerDeletePassword('');
+          setPlayerDeleteError('');
+          setFeedback(`🗑️ El jugador ${nombreUpper} y sus ${matchesToDelete.length} partida(s) fueron eliminados.`);
+          setTimeout(() => setFeedback(''), 4000);
+        } catch (err) {
+          console.error("Error al borrar jugador e historial:", err);
+          setPlayerDeleteError('Error al eliminar el jugador y su historial.');
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+
       const approvedPartidas = useMemo(() => partidas.filter(p => p.estado === 'APROBADA'), [partidas]);
       const pendingPartidas = useMemo(() => partidas.filter(p => p.estado === 'PENDIENTE'), [partidas]);
       const pendingCuentas = useMemo(() => cuentas.filter(c => c.estado === 'PENDIENTE'), [cuentas]);
@@ -1124,7 +1150,7 @@ const handleBorrarJugadorIndividual = async (nombreJugador) => {
                           <th className="py-4 px-3 text-center">Ventaja</th>
                           <th className="py-4 px-3 text-center">WR %</th>
                           <th className="py-4 px-3 text-center">KDA</th>
-                          <th className="py-4 px-3 text-center">Acciones</th>
+                          {currentUser?.isAdmin && <th className="py-4 px-3 text-center">Acciones</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
@@ -1193,17 +1219,18 @@ const handleBorrarJugadorIndividual = async (nombreJugador) => {
                                 <span className="px-2 py-0.5 rounded-md bg-cyan-950 text-cyan-300 border border-cyan-800/50 font-mono font-bold text-xs">
                                   {row.kda}
                                 </span>
-                                <td className="py-3 px-3 text-center whitespace-nowrap">
-  {currentUser?.isAdmin && (
-    <button
-      onClick={() => handleBorrarJugadorIndividual(row.nombre)}
-      className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-      title={`Eliminar a ${row.nombre}`}
-    >
-      <IconTrash />
-    </button>
-  )}
                               </td>
+                              {currentUser?.isAdmin && (
+                                <td className="py-3 px-3 text-center whitespace-nowrap">
+                                  <button
+                                    onClick={() => handleBorrarJugadorIndividual(row.nombre)}
+                                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                    title={`Eliminar a ${row.nombre} e historial`}
+                                  >
+                                    <IconTrash />
+                                  </button>
+                                </td>
+                              )}
                             </tr>
                           );
                         })}
@@ -2027,6 +2054,56 @@ const handleBorrarJugadorIndividual = async (nombreJugador) => {
             </div>
           )}
 
+          {selectedPlayerToDelete && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="glass-card rounded-2xl max-w-sm w-full p-6 border border-red-500/30 space-y-4 shadow-2xl">
+                <h3 className="text-lg font-black text-red-400">🗑️ Eliminar Jugador e Historial</h3>
+                <p className="text-xs text-slate-300">
+                  ¿Estás seguro de eliminar a <strong className="text-white font-bold">{selectedPlayerToDelete}</strong>?
+                </p>
+                <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl text-xs text-slate-400 space-y-1">
+                  <p>⚠️ Se eliminarán permanentemente:</p>
+                  <ul className="list-disc list-inside text-red-300 font-medium">
+                    <li>El registro del jugador de la tabla</li>
+                    <li>
+                      <strong>
+                        {partidas.filter(p => p.ganador === selectedPlayerToDelete.toUpperCase() || p.perdedor === selectedPlayerToDelete.toUpperCase()).length}
+                      </strong> partida(s) asociadas a su historial
+                    </li>
+                  </ul>
+                </div>
+                
+                <form onSubmit={handleConfirmBorrarJugador} className="space-y-3">
+                  <input
+                    type="password"
+                    required
+                    placeholder="Contraseña de Administrador (Naruto672)"
+                    value={playerDeletePassword}
+                    onChange={e => setPlayerDeletePassword(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white"
+                  />
+                  {playerDeleteError && <p className="text-xs text-red-400 font-bold">{playerDeleteError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlayerToDelete(null)}
+                      className="flex-1 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow transition"
+                    >
+                      {isSubmitting ? 'Eliminando...' : 'Eliminar Todo'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
           {selectedMatchToDelete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
               <div className="glass-card rounded-2xl max-w-sm w-full p-6 border border-red-500/30 space-y-4">
@@ -2070,7 +2147,4 @@ const handleBorrarJugadorIndividual = async (nombreJugador) => {
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
-</body>
-</html>
+    ReactDOM.createRoot(document.getElementB
