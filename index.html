@@ -7,15 +7,44 @@
   <title>🎴 Truco League - Verified Stats & Real-Time Sync System</title>
   
   <!-- Web App Manifest -->
-  <link rel="manifest" href="data:application/manifest+json;utf8,%7B%22short_name%22%3A%22Truco%20League%22%2C%22name%22%3A%22Truco%20League%20Platform%22%2C%22start_url%22%3A%22%2F%22%2C%22background_color%22%3A%22%230b0f19%22%2C%22theme_color%22%3A%22%230b0f19%22%2C%22display%22%3A%22standalone%22%7D">
+  <!-- Icono para iOS (iPhone/iPad) -->
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2583/2583344.png">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2583/2583344.png">
+
+  <!-- Web App Manifest (Incluye iconos y configuración de Pantalla Completa Standalone) -->
+  <link rel="manifest" href='data:application/manifest+json;utf8,{
+    "short_name": "Truco League",
+    "name": "Truco League Platform",
+    "icons": [
+      {
+        "src": "https://cdn-icons-png.flaticon.com/512/2583/2583344.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any maskable"
+      },
+      {
+        "src": "https://cdn-icons-png.flaticon.com/512/2583/2583344.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any maskable"
+      }
+    ],
+    "start_url": "./",
+    "background_color": "#0b0f19",
+    "theme_color": "#0b0f19",
+    "display": "standalone",
+    "orientation": "portrait"
+  }'>
 
   <!-- Configuración de color para el navegador y barra de estado -->
   <meta name="theme-color" content="#0b0f19">
 
-  <!-- Soporte para iOS (Safari) -->
+  <!-- Soporte para iOS (Safari fullscreen y standalone) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-touch-fullscreen" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Truco League">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
