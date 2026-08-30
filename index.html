@@ -295,7 +295,28 @@
         setFeedback('🔗 ¡Link copiado al portapapeles!');
         setTimeout(() => setFeedback(''), 3000);
       };
+const handleBorrarJugadorIndividual = async (nombreJugador) => {
+    if (!confirm(`⚠️ ¿Eliminar a "${nombreJugador}" de la tabla y de Firebase?`)) return;
 
+    try {
+      const { db, appId, doc, deleteDoc } = window.TrucoDB || {};
+      const nombreUpper = nombreJugador.toUpperCase();
+
+      if (db) {
+        // 1. Borrar documento del jugador en Firestore
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'jugadores', nombreUpper));
+      }
+
+      // 2. Actualizar el estado local
+      setJugadores(prev => prev.filter(j => j !== nombreUpper));
+
+      setFeedback(`🗑️ El jugador ${nombreUpper} ha sido eliminado.`);
+      setTimeout(() => setFeedback(''), 3000);
+    } catch (err) {
+      console.error("Error al borrar jugador:", err);
+      setFeedback('❌ Error al eliminar el jugador.');
+    }
+  };
       const approvedPartidas = useMemo(() => partidas.filter(p => p.estado === 'APROBADA'), [partidas]);
       const pendingPartidas = useMemo(() => partidas.filter(p => p.estado === 'PENDIENTE'), [partidas]);
       const pendingCuentas = useMemo(() => cuentas.filter(c => c.estado === 'PENDIENTE'), [cuentas]);
