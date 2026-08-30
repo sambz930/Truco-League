@@ -2,7 +2,7 @@ name: Deploy to Firebase Hosting on merge
 on:
   push:
     branches:
-      - main # Cambia 'main' por 'master' si tu rama principal se llama master
+      - main
 
 jobs:
   build_and_deploy:
@@ -13,6 +13,6 @@ jobs:
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' # Debe coincidir con el nombre del secreto creado en el Paso 2
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
           channelId: live
-          projectId: ID_DE_TU_PROYECTO_FIREBASE # Reemplaza esto por el ID real de tu proyecto en Firebase
+          projectId: ID_DE_TU_PROYECTO_FIREBASE
