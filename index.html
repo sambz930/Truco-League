@@ -1,0 +1,2309 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>🎴 Truco League - Optimized Stats & 45-Day Season System</title>
+  
+  <!-- Web App Manifest e Iconos -->
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2583/2583344.png">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2583/2583344.png">
+
+  <!-- Configuración de color para el navegador -->
+  <meta name="theme-color" content="#0b0f19">
+
+  <!-- Soporte para iOS (Safari fullscreen) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Truco League">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            truco: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+              gold: '#eab308',
+              silver: '#94a3b8',
+              bronze: '#b45309'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-accent {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+    .badge-season {
+      background: linear-gradient(135deg, rgba(234,179,8,0.15) 0%, rgba(22,163,74,0.15) 100%);
+      border: 1px solid rgba(234,179,8,0.3);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+  <div id="root"></div>
+
+  <!-- Inicialización de Firebase con fallback local -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'truco-league-app';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' 
+      ? (typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config)
+      : {
+          apiKey: "AIzaSyC_mFMEf8Ea2KYbtVe7iCrdgATftQtl8rE",
+          authDomain: "truco-league-cf286.firebaseapp.com",
+          projectId: "truco-league-cf286",
+          storageBucket: "truco-league-cf286.firebasestorage.app",
+          messagingSenderId: "1073966718355",
+          appId: "1:1073966718355:web:1d343f97e28edb322fdc66"
+        };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const initFirebase = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (e) {
+        try { await signInAnonymously(auth); } catch (err) {}
+      }
+    };
+
+    initFirebase();
+
+    window.TrucoDB = { 
+      db, auth, appId, collection, doc, setDoc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
+    };
+  </script>
+
+  <!-- Código React Babel -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback } = React;
+
+    // Configuración de Enlace Externo opcional
+    const EXTERNAL_LINK_URL = "https://ejemplo.com"; 
+    const EXTERNAL_LINK_LABEL = "🌐 Ir a la Página Externa / Torneo";
+
+    const DEFAULT_JUGADORES = ["SAMU"];
+    const ADMIN_EMAIL = "benitezsamuel930@gmail.com";
+    const ADMIN_PASS = "Naruto672";
+    const SEASON_DAYS = 45; // Duración de cada temporada en días
+
+    const INITIAL_ACCOUNTS = [
+      {
+        email: "benitezsamuel930@gmail.com",
+        password: "Naruto672",
+        nombre: "SAMU",
+        role: "ADMIN",
+        estado: "APROBADO"
+      }
+    ];
+
+    const INITIAL_PARTIDAS = [];
+
+    // Formateador de fecha estándar ISO local YYYY-MM-DD
+    const getTodayDateString = () => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // Componentes Iconos
+    const IconShield = () => (
+      <svg className="w-4 h-4 text-emerald-400 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+      </svg>
+    );
+
+    const IconPlus = () => (
+      <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
+      </svg>
+    );
+
+    const IconTrash = () => (
+      <svg className="w-4 h-4 text-red-400 hover:text-red-300 transition-colors inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+      </svg>
+    );
+
+    const IconDownload = () => (
+      <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+    );
+
+    const IconExternalLink = () => (
+      <svg className="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+    );
+
+    // Componente visual para fosforitos/palitos de Truco Argentino (0 a 5 por cajita)
+    const FosforosBox = ({ count }) => {
+      const c = Math.min(5, Math.max(0, count));
+      return (
+        <div className="relative w-11 h-11 sm:w-12 sm:h-12 bg-slate-900/90 border border-slate-700/60 rounded-lg flex items-center justify-center p-1 shadow-inner">
+          <svg className="w-full h-full text-amber-400 stroke-amber-400" viewBox="0 0 40 40" strokeWidth="3.5" strokeLinecap="round">
+            {c >= 1 && <line x1="8" y1="8" x2="32" y2="8" />}
+            {c >= 2 && <line x1="32" y1="8" x2="32" y2="32" />}
+            {c >= 3 && <line x1="32" y1="32" x2="8" y2="32" />}
+            {c >= 4 && <line x1="8" y1="32" x2="8" y2="8" />}
+            {c >= 5 && <line x1="8" y1="8" x2="32" y2="32" className="text-emerald-400 stroke-emerald-400" />}
+          </svg>
+        </div>
+      );
+    };
+
+    // Anotador de Truco Argentino completo (30 puntos: 15 malas + 15 buenas)
+    const AnotadorTruco = ({ puntos, onChange, label }) => {
+      const p = Math.min(30, Math.max(0, puntos));
+      
+      const malas = Math.min(15, p);
+      const buenas = p > 15 ? p - 15 : 0;
+
+      const renderBoxes = (pts) => {
+        const boxes = [];
+        for (let i = 0; i < 3; i++) {
+          const valInBox = Math.min(5, Math.max(0, pts - (i * 5)));
+          boxes.push(<FosforosBox key={i} count={valInBox} />);
+        }
+        return boxes;
+      };
+
+      return (
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+            <span className="text-xs font-black text-amber-300 uppercase tracking-wide truncate max-w-[170px] sm:max-w-none">{label}</span>
+            <span className="text-xl sm:text-2xl font-black text-emerald-400">{p} / 30 pts</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-center">
+            {/* Malas (0 - 15) */}
+            <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+              <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Malas (0 - 15)</span>
+              <div className="flex justify-center gap-1 sm:gap-1.5">
+                {renderBoxes(malas)}
+              </div>
+              <span className="text-xs font-bold text-slate-300">{malas} pts</span>
+            </div>
+
+            {/* Buenas (16 - 30) */}
+            <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+              <span className="text-[10px] font-extrabold uppercase text-emerald-400 block">Buenas (16 - 30)</span>
+              <div className="flex justify-center gap-1 sm:gap-1.5">
+                {renderBoxes(buenas)}
+              </div>
+              <span className="text-xs font-bold text-emerald-400">{buenas} pts</span>
+            </div>
+          </div>
+
+          {/* Controles de +1 y -1 */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => onChange(Math.max(0, p - 1))}
+              className="py-3 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/50 font-black text-base rounded-xl active:scale-95 transition flex items-center justify-center gap-1 shadow cursor-pointer select-none"
+            >
+              -1 Punto
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => onChange(Math.min(30, p + 1))}
+              className="py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-1 cursor-pointer select-none"
+            >
+              +1 Punto
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    function App() {
+      // Usuario con sesión guardada
+      const [currentUser, setCurrentUser] = useState(() => {
+        try {
+          const saved = localStorage.getItem('truco_league_user');
+          return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+          return null;
+        }
+      });
+
+      useEffect(() => {
+        if (currentUser) {
+          try { localStorage.setItem('truco_league_user', JSON.stringify(currentUser)); } catch (e) {}
+        } else {
+          try { localStorage.removeItem('truco_league_user'); } catch (e) {}
+        }
+      }, [currentUser]);
+
+      // Estado de Jugadores y Cuentas
+      const [jugadores, setJugadores] = useState(DEFAULT_JUGADORES);
+      const [cuentas, setCuentas] = useState(() => {
+        try {
+          const saved = localStorage.getItem('truco_league_cuentas');
+          return saved ? JSON.parse(saved) : INITIAL_ACCOUNTS;
+        } catch(e) {
+          return INITIAL_ACCOUNTS;
+        }
+      });
+
+      useEffect(() => {
+        try { localStorage.setItem('truco_league_cuentas', JSON.stringify(cuentas)); } catch(e){}
+      }, [cuentas]);
+
+      // Estado de Partidas Totales
+      const [partidas, setPartidas] = useState(() => {
+        try {
+          const saved = localStorage.getItem('truco_league_partidas');
+          return saved ? JSON.parse(saved) : INITIAL_PARTIDAS;
+        } catch(e) {
+          return INITIAL_PARTIDAS;
+        }
+      });
+
+      useEffect(() => {
+        try { localStorage.setItem('truco_league_partidas', JSON.stringify(partidas)); } catch(e){}
+      }, [partidas]);
+
+      // H2H Numérico Simple: { "PLAYER1:PLAYER2": { p1Wins: N, p2Wins: N, total: N } }
+      const [h2hData, setH2hData] = useState(() => {
+        try {
+          const saved = localStorage.getItem('truco_league_h2h_data');
+          return saved ? JSON.parse(saved) : {};
+        } catch(e) {
+          return {};
+        }
+      });
+
+      useEffect(() => {
+        try { localStorage.setItem('truco_league_h2h_data', JSON.stringify(h2hData)); } catch(e){}
+      }, [h2hData]);
+
+      // Control de Temporadas de 45 días
+      const [seasonConfig, setSeasonConfig] = useState(() => {
+        try {
+          const saved = localStorage.getItem('truco_league_season_config');
+          if (saved) return JSON.parse(saved);
+        } catch(e) {}
+        return {
+          seasonNumber: 1,
+          startDate: new Date().toISOString(),
+          durationDays: SEASON_DAYS
+        };
+      });
+
+      useEffect(() => {
+        try { localStorage.setItem('truco_league_season_config', JSON.stringify(seasonConfig)); } catch(e){}
+      }, [seasonConfig]);
+
+      const [auditLogs, setAuditLogs] = useState([]);
+      const [nuevoJugador, setNuevoJugador] = useState('');
+      const [activeTab, setActiveTab] = useState('ranking');
+
+      // Modo Carga (1v1 o 2v2)
+      const [modoPartida, setModoPartida] = useState('1v1');
+
+      // 1v1
+      const [jugador1, setJugador1] = useState('SAMU');
+      const [jugador2, setJugador2] = useState('');
+      const [ptsJ1, setPtsJ1] = useState(0);
+      const [ptsJ2, setPtsJ2] = useState(0);
+
+      // 2v2
+      const [e1j1, setE1j1] = useState('SAMU');
+      const [e1j2, setE1j2] = useState('');
+      const [e2j1, setE2j1] = useState('');
+      const [e2j2, setE2j2] = useState('');
+      const [ptsE1, setPtsE1] = useState(0);
+      const [ptsE2, setPtsE2] = useState(0);
+
+      // Vista PC/Móvil
+      const [deviceMode, setDeviceMode] = useState(() => {
+        try { return localStorage.getItem('truco_league_device') || null; } catch (e) { return null; }
+      });
+      const [showDeviceModal, setShowDeviceModal] = useState(() => !localStorage.getItem('truco_league_device'));
+
+      const handleSelectDevice = (mode) => {
+        setDeviceMode(mode);
+        try { localStorage.setItem('truco_league_device', mode); } catch (e) {}
+        setShowDeviceModal(false);
+      };
+
+      // Modales y Respuestas
+      const [showLoginModal, setShowLoginModal] = useState(false);
+      const [authMode, setAuthMode] = useState('LOGIN');
+      const [loginEmailInput, setLoginEmailInput] = useState('');
+      const [loginPasswordInput, setLoginPasswordInput] = useState('');
+
+      const [regEmailConfirmInput, setRegEmailConfirmInput] = useState('');
+      const [regPasswordConfirmInput, setRegPasswordConfirmInput] = useState('');
+      const [regNombreInput, setRegNombreInput] = useState('');
+
+      const [feedback, setFeedback] = useState('');
+      const [modalError, setModalError] = useState('');
+
+      const [showResetModal, setShowResetModal] = useState(false);
+      const [resetPassword, setResetPassword] = useState('');
+      const [resetError, setResetError] = useState('');
+
+      const [selectedMatchToDelete, setSelectedMatchToDelete] = useState(null);
+      const [matchDeletePassword, setMatchDeletePassword] = useState('');
+      const [matchDeleteError, setMatchDeleteError] = useState('');
+
+      const [h2hP1, setH2hP1] = useState('SAMU');
+      const [h2hP2, setH2hP2] = useState('');
+
+      const [isSubmitting, setIsSubmitting] = useState(false);
+      const [mostrarHistorialCompleto, setMostrarHistorialCompleto] = useState(false);
+
+      // Cálculo del progreso de la Temporada (45 días)
+      const seasonInfo = useMemo(() => {
+        const start = new Date(seasonConfig.startDate);
+        const now = new Date();
+        const diffMs = now.getTime() - start.getTime();
+        const elapsedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const currentDay = Math.min(seasonConfig.durationDays, Math.max(1, elapsedDays + 1));
+        const daysRemaining = Math.max(0, seasonConfig.durationDays - elapsedDays);
+        return {
+          number: seasonConfig.seasonNumber,
+          currentDay,
+          daysRemaining,
+          isFinished: elapsedDays >= seasonConfig.durationDays
+        };
+      }, [seasonConfig]);
+
+      const copyShareableLink = () => {
+        const baseUrl = window.location.href.split('?')[0];
+        const tempInput = document.createElement('input');
+        tempInput.value = baseUrl;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        setFeedback('🔗 ¡Link copiado al portapapeles!');
+        setTimeout(() => setFeedback(''), 3000);
+      };
+
+      // Sincronización en tiempo real con Firebase Firestore
+      useEffect(() => {
+        const checkDB = setInterval(() => {
+          const { db, appId, collection, doc, setDoc, onSnapshot } = window.TrucoDB || {};
+          if (!db) return;
+
+          clearInterval(checkDB);
+
+          // Escuchar Jugadores
+          const unsubJugadores = onSnapshot(
+            collection(db, 'artifacts', appId, 'public', 'data', 'jugadores'), 
+            (snapshot) => {
+              const list = snapshot.docs.map(d => d.data().nombre);
+              if (list.length > 0) {
+                setJugadores(Array.from(new Set(list)));
+              } else {
+                DEFAULT_JUGADORES.forEach(j => {
+                  setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'jugadores', j), { nombre: j });
+                });
+              }
+            }, 
+            (err) => console.warn("Firestore (jugadores):", err.message)
+          );
+
+          // Escuchar Cuentas
+          const unsubCuentas = onSnapshot(
+            collection(db, 'artifacts', appId, 'public', 'data', 'cuentas'), 
+            (snapshot) => {
+              const list = snapshot.docs.map(d => d.data());
+              if (list.length > 0) {
+                setCuentas(list);
+              } else {
+                const adminDocId = ADMIN_EMAIL.replace(/\./g, '_');
+                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cuentas', adminDocId), INITIAL_ACCOUNTS[0]);
+              }
+            }, 
+            (err) => console.warn("Firestore (cuentas):", err.message)
+          );
+
+          // Escuchar Partidas
+          const unsubPartidas = onSnapshot(
+            collection(db, 'artifacts', appId, 'public', 'data', 'partidas'), 
+            (snapshot) => {
+              const list = snapshot.docs.map(d => d.data());
+              setPartidas(list);
+            }, 
+            (err) => console.warn("Firestore (partidas):", err.message)
+          );
+
+          // Escuchar H2H Numérico
+          const unsubH2H = onSnapshot(
+            doc(db, 'artifacts', appId, 'public', 'data', 'h2h_summary', 'main'),
+            (snapshot) => {
+              if (snapshot.exists()) {
+                setH2hData(snapshot.data().pairs || {});
+              }
+            },
+            (err) => console.warn("Firestore (H2H):", err.message)
+          );
+
+          // Escuchar Config de Temporada
+          const unsubSeason = onSnapshot(
+            doc(db, 'artifacts', appId, 'public', 'data', 'season_config', 'main'),
+            (snapshot) => {
+              if (snapshot.exists()) {
+                setSeasonConfig(snapshot.data());
+              }
+            },
+            (err) => console.warn("Firestore (Season):", err.message)
+          );
+
+          // Escuchar Log de Auditoría
+          const unsubAudit = onSnapshot(
+            collection(db, 'artifacts', appId, 'public', 'data', 'auditLogs'),
+            (snapshot) => {
+              const list = snapshot.docs.map(d => d.data()).sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+              setAuditLogs(list);
+            },
+            (err) => console.warn("Firestore (auditLogs):", err.message)
+          );
+
+          return () => {
+            unsubJugadores();
+            unsubCuentas();
+            unsubPartidas();
+            unsubH2H();
+            unsubSeason();
+            unsubAudit();
+          };
+        }, 300);
+
+        return () => clearInterval(checkDB);
+      }, []);
+
+      // Helper para actualizar H2H Numérico Simple
+      const updateNumericH2H = useCallback((p1Name, p2Name, isWinnerP1, currentH2HMap) => {
+        if (!p1Name || !p2Name || p1Name === p2Name) return currentH2HMap;
+        
+        // Clave única alfabética (ej. "CARLOS:SAMU")
+        const [pA, pB] = [p1Name, p2Name].sort();
+        const pairKey = `${pA}:${pB}`;
+        
+        const existing = currentH2HMap[pairKey] || { p1Wins: 0, p2Wins: 0, total: 0 };
+        const updated = { ...existing, total: existing.total + 1 };
+
+        if (pA === p1Name) {
+          if (isWinnerP1) updated.p1Wins += 1;
+          else updated.p2Wins += 1;
+        } else {
+          if (isWinnerP1) updated.p2Wins += 1;
+          else updated.p1Wins += 1;
+        }
+
+        const newMap = { ...currentH2HMap, [pairKey]: updated };
+
+        // Guardar en Firebase de forma asíncrona
+        try {
+          const { db, appId, setDoc, doc } = window.TrucoDB || {};
+          if (db) {
+            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'h2h_summary', 'main'), { pairs: newMap }, { merge: true });
+          }
+        } catch (e) {}
+
+        return newMap;
+      }, []);
+
+      // Filtrado de partidas aprobadas vs pendientes
+      const approvedPartidas = useMemo(() => partidas.filter(p => p.estado === 'APROBADA'), [partidas]);
+      const pendingPartidas = useMemo(() => partidas.filter(p => p.estado === 'PENDIENTE'), [partidas]);
+      const pendingCuentas = useMemo(() => cuentas.filter(c => c.estado === 'PENDIENTE'), [cuentas]);
+
+      // OPTIMIZACIÓN: Partidas jugadas del día (el historial solo muestra las de hoy)
+      const todayString = useMemo(() => getTodayDateString(), []);
+      const partidasDeHoy = useMemo(() => {
+        return approvedPartidas.filter(p => {
+          if (p.fechaIso) return p.fechaIso === todayString;
+          // Fallback para fechas antiguas guardadas como string local
+          const fechaMatch = p.fecha || '';
+          const hoyLocal = new Date().toLocaleDateString('es-AR');
+          return fechaMatch === hoyLocal;
+        });
+      }, [approvedPartidas, todayString]);
+
+      const handleAgregarJugador = async (e) => {
+        e.preventDefault();
+        if (!nuevoJugador.trim()) return;
+        const nombreClean = nuevoJugador.trim().toUpperCase();
+        if (jugadores.includes(nombreClean)) {
+          setFeedback('⚠️ Este jugador ya está registrado.');
+          setTimeout(() => setFeedback(''), 3000);
+          return;
+        }
+
+        try {
+          const { db, appId, setDoc, doc } = window.TrucoDB || {};
+          if (db) {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'jugadores', nombreClean), { nombre: nombreClean });
+          }
+        } catch (err) {
+          console.error("Error al guardar jugador:", err);
+        }
+
+        setJugadores(prev => Array.from(new Set([...prev, nombreClean])));
+        setNuevoJugador('');
+        setFeedback(`✅ Jugador ${nombreClean} agregado a la liga.`);
+        setTimeout(() => setFeedback(''), 3000);
+      };
+
+      const handleAprobarPartida = async (partidaId) => {
+        try {
+          const targetPartida = partidas.find(p => p.id === partidaId);
+          const { db, appId, doc, updateDoc } = window.TrucoDB || {};
+          
+          if (db) {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'partidas', partidaId), {
+              estado: 'APROBADA'
+            });
+          }
+
+          if (targetPartida) {
+            // Actualizar H2H numérico al aprobar
+            const gList = targetPartida.ganadores || [targetPartida.ganador];
+            const pList = targetPartida.perdedores || [targetPartida.perdedor];
+            
+            let updatedH2H = { ...h2hData };
+            gList.forEach(g => {
+              pList.forEach(p => {
+                updatedH2H = updateNumericH2H(g, p, true, updatedH2H);
+              });
+            });
+            setH2hData(updatedH2H);
+          }
+
+          setPartidas(prev => prev.map(p => p.id === partidaId ? { ...p, estado: 'APROBADA' } : p));
+          setFeedback('✅ Partida aprobada con éxito.');
+          setTimeout(() => setFeedback(''), 3000);
+        } catch (err) {
+          console.error(err);
+          setFeedback('❌ Error al aprobar la partida.');
+          setTimeout(() => setFeedback(''), 3000);
+        }
+      };
+
+      const handleRechazarPartida = async (partidaId) => {
+        try {
+          const { db, appId, doc, deleteDoc } = window.TrucoDB || {};
+          if (db) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'partidas', partidaId));
+          }
+          setPartidas(prev => prev.filter(p => p.id !== partidaId));
+          setFeedback('❌ Solicitud de partida rechazada.');
+          setTimeout(() => setFeedback(''), 3000);
+        } catch (err) {
+          console.error(err);
+          setFeedback('❌ Error al rechazar la partida.');
+          setTimeout(() => setFeedback(''), 3000);
+        }
+      };
+
+      const handleAprobarCuenta = async (email) => {
+        try {
+          const { db, appId, doc, updateDoc, setDoc } = window.TrucoDB || {};
+          const targetAcc = cuentas.find(c => c.email.toLowerCase() === email.toLowerCase());
+
+          if (db) {
+            const docId = email.replace(/\./g, '_');
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cuentas', docId), {
+              estado: 'APROBADO'
+            });
+
+            if (targetAcc && targetAcc.nombre) {
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'jugadores', targetAcc.nombre), { nombre: targetAcc.nombre }, { merge: true });
+            }
+          }
+
+          setCuentas(prev => prev.map(c => c.email.toLowerCase() === email.toLowerCase() ? { ...c, estado: 'APROBADO' } : c));
+          if (targetAcc && targetAcc.nombre) {
+            setJugadores(prev => Array.from(new Set([...prev, targetAcc.nombre])));
+          }
+
+          setFeedback(`✅ Perfil de usuario aprobado exitosamente.`);
+          setTimeout(() => setFeedback(''), 3000);
+        } catch (err) {
+          console.error(err);
+          setFeedback('❌ Error al aprobar la cuenta.');
+          setTimeout(() => setFeedback(''), 3000);
+        }
+      };
+
+      const handleRechazarCuenta = async (email) => {
+        try {
+          const { db, appId, doc, deleteDoc } = window.TrucoDB || {};
+          if (db) {
+            const docId = email.replace(/\./g, '_');
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cuentas', docId));
+          }
+          setCuentas(prev => prev.filter(c => c.email.toLowerCase() !== email.toLowerCase()));
+          setFeedback('❌ Solicitud de usuario rechazada.');
+          setTimeout(() => setFeedback(''), 3000);
+        } catch (err) {
+          console.error(err);
+          setFeedback('❌ Error al rechazar la cuenta.');
+          setTimeout(() => setFeedback(''), 3000);
+        }
+      };
+
+      const handleEliminarPartida = (partidaId) => {
+        setSelectedMatchToDelete(partidaId);
+        setMatchDeletePassword('');
+        setMatchDeleteError('');
+      };
+
+      const handleConfirmEliminarPartida = async (e) => {
+        e.preventDefault();
+        if (matchDeletePassword !== ADMIN_PASS && matchDeletePassword !== 'reiniciosoygay') {
+          setMatchDeleteError('Contraseña de administrador incorrecta.');
+          return;
+        }
+        if (!selectedMatchToDelete) return;
+
+        try {
+          const { db, appId, doc, deleteDoc } = window.TrucoDB || {};
+          if (db) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'partidas', selectedMatchToDelete));
+          }
+          setPartidas(prev => prev.filter(p => p.id !== selectedMatchToDelete));
+          setSelectedMatchToDelete(null);
+          setMatchDeletePassword('');
+          setMatchDeleteError('');
+          setFeedback('🗑️ Partida eliminada.');
+          setTimeout(() => setFeedback(''), 3000);
+        } catch (err) {
+          console.error(err);
+          setMatchDeleteError('Error al eliminar la partida.');
+        }
+      };
+
+      const handleLogout = () => {
+        setCurrentUser(null);
+        try { localStorage.removeItem('truco_league_user'); } catch (e) {}
+        setFeedback('👋 Sesión cerrada exitosamente.');
+        setTimeout(() => setFeedback(''), 3000);
+      };
+
+      // Cálculo de ranking
+      const rankingData = useMemo(() => {
+        const stats = {};
+        jugadores.forEach(j => {
+          stats[j] = { nombre: j, puntos: 0, ganadas: 0, perdidas: 0, ptsVentaja: 0 };
+        });
+
+        approvedPartidas.forEach(p => {
+          const ganadoresList = p.ganadores || (p.ganador ? [p.ganador] : []);
+          const perdedoresList = p.perdedores || (p.perdedor ? [p.perdedor] : []);
+          const ptsPremio = p.puntosGanadorPorJugador || (p.tipo === '2v2' ? 2 : 1);
+
+          ganadoresList.forEach(g => {
+            if (stats[g]) {
+              stats[g].puntos += ptsPremio;
+              stats[g].ganadas += 1;
+              stats[g].ptsVentaja += Number(p.ventaja || 0);
+            }
+          });
+
+          perdedoresList.forEach(l => {
+            if (stats[l]) {
+              stats[l].perdidas += 1;
+            }
+          });
+        });
+
+        return Object.values(stats).map(p => {
+          const pj = p.ganadas + p.perdidas;
+          const wrRaw = pj > 0 ? (p.ganadas / pj) : 0;
+          const wrPct = Math.round(wrRaw * 100);
+          const kdaVal = pj > 0 ? ((p.puntos / pj) + (p.ptsVentaja / 100)) : 0;
+          const kdaFormatted = Number(kdaVal).toFixed(2);
+
+          return { ...p, pj, wrPct, kda: Number(kdaFormatted) };
+        }).sort((a, b) => {
+          if (b.puntos !== a.puntos) return b.puntos - a.puntos;
+          if (b.kda !== a.kda) return b.kda - a.kda;
+          return b.ptsVentaja - a.ptsVentaja;
+        });
+      }, [jugadores, approvedPartidas]);
+
+      const handleLoginSubmit = async (e) => {
+        e.preventDefault();
+        setModalError('');
+        const cleanEmail = loginEmailInput.trim().toLowerCase();
+        const pass = loginPasswordInput.trim();
+
+        if (!cleanEmail || !pass) {
+          setModalError('⚠️ Completa correo y contraseña.');
+          return;
+        }
+
+        setIsSubmitting(true);
+        try {
+          const { db, appId, setDoc, doc } = window.TrucoDB || {};
+
+          if (cleanEmail === ADMIN_EMAIL) {
+            if (pass === ADMIN_PASS) {
+              const adminUser = { email: ADMIN_EMAIL, jugadorNombre: "SAMU", isAdmin: true };
+              setCurrentUser(adminUser);
+              setShowLoginModal(false);
+              
+              const newLog = {
+                id: Date.now().toString(),
+                email: ADMIN_EMAIL,
+                jugadorNombre: "SAMU (ADMIN)",
+                fecha: new Date().toLocaleTimeString('es-AR'),
+                timestamp: Date.now(),
+                role: 'ADMIN'
+              };
+              try {
+                if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'auditLogs', newLog.id), newLog);
+              } catch (err) {}
+              setFeedback('👑 Sesión iniciada como Administrador SAMU.');
+              setTimeout(() => setFeedback(''), 4000);
+              return;
+            } else {
+              setModalError('🚫 Contraseña de Administrador incorrecta.');
+              return;
+            }
+          }
+
+          const account = cuentas.find(c => c.email.toLowerCase() === cleanEmail);
+          if (!account) {
+            setModalError('⚠️ No existe perfil registrado con ese correo.');
+            return;
+          }
+
+          if (account.password !== pass) {
+            setModalError('⚠️ Contraseña incorrecta.');
+            return;
+          }
+
+          if (account.estado === 'PENDIENTE') {
+            setModalError('⏳ Tu perfil aún está pendiente de aprobación por SAMU.');
+            return;
+          }
+
+          const userObj = { email: account.email, jugadorNombre: account.nombre, isAdmin: false };
+          setCurrentUser(userObj);
+          setShowLoginModal(false);
+
+          const newLog = {
+            id: Date.now().toString(),
+            email: account.email,
+            jugadorNombre: account.nombre,
+            fecha: new Date().toLocaleTimeString('es-AR'),
+            timestamp: Date.now(),
+            role: 'JUGADOR'
+          };
+
+          try {
+            if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'auditLogs', newLog.id), newLog);
+          } catch (err) {}
+          setFeedback(`¡Bienvenido ${account.nombre}! Sesión iniciada.`);
+          setTimeout(() => setFeedback(''), 4000);
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+
+      const handleRegisterSubmit = async (e) => {
+        e.preventDefault();
+        setModalError('');
+        const cleanEmail = loginEmailInput.trim().toLowerCase();
+        const cleanEmailConfirm = regEmailConfirmInput.trim().toLowerCase();
+        const pass = loginPasswordInput.trim();
+        const passConfirm = regPasswordConfirmInput.trim();
+        const nombreFormatted = regNombreInput.trim().toUpperCase();
+
+        if (!cleanEmail || !cleanEmailConfirm || !pass || !passConfirm || !nombreFormatted) {
+          setModalError('⚠️ Completa todos los campos.');
+          return;
+        }
+
+        if (cleanEmail !== cleanEmailConfirm) {
+          setModalError('⚠️ Los correos no coinciden.');
+          return;
+        }
+
+        if (pass !== passConfirm) {
+          setModalError('⚠️ Las contraseñas no coinciden.');
+          return;
+        }
+
+        if (cleanEmail === ADMIN_EMAIL) {
+          setModalError('⚠️ Este correo está reservado.');
+          return;
+        }
+
+        if (cuentas.some(c => c.email.toLowerCase() === cleanEmail)) {
+          setModalError('⚠️ Ya existe una cuenta vinculada a este correo.');
+          return;
+        }
+
+        if (cuentas.some(c => c.nombre.toUpperCase() === nombreFormatted)) {
+          setModalError('⚠️ Nombre de jugador ya ocupado.');
+          return;
+        }
+
+        setIsSubmitting(true);
+        try {
+          const nuevaCuenta = {
+            email: cleanEmail,
+            password: pass,
+            nombre: nombreFormatted,
+            role: 'JUGADOR',
+            estado: 'PENDIENTE',
+            fecha: new Date().toISOString()
+          };
+
+          const { db, auth, appId, setDoc, doc, signInAnonymously } = window.TrucoDB || {};
+          
+          if (auth && !auth.currentUser) {
+            try { await signInAnonymously(auth); } catch(err){}
+          }
+
+          if (db) {
+            const docId = cleanEmail.replace(/\./g, '_');
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cuentas', docId), nuevaCuenta);
+          }
+
+          setCuentas(prev => {
+            const filtered = prev.filter(c => c.email.toLowerCase() !== cleanEmail);
+            return [...filtered, nuevaCuenta];
+          });
+
+          setAuthMode('LOGIN');
+          setLoginEmailInput('');
+          setLoginPasswordInput('');
+          setRegEmailConfirmInput('');
+          setRegPasswordConfirmInput('');
+          setRegNombreInput('');
+          setShowLoginModal(false);
+          setModalError('');
+          
+          setFeedback('📩 Solicitud enviada para revisión de SAMU.');
+          setTimeout(() => setFeedback(''), 5000);
+        } catch (err) {
+          console.error("Error guardando:", err);
+          setModalError('❌ Error al enviar solicitud.');
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+
+      // Registrar partida (1v1 o 2v2)
+      const handleRegistrarPartida = async (e) => {
+        e.preventDefault();
+        const esAdmin = currentUser?.isAdmin;
+        const currentIsoDate = getTodayDateString();
+
+        if (modoPartida === '1v1') {
+          if (!jugador1 || !jugador2) {
+            setFeedback('⚠️ Selecciona ambos jugadores.');
+            setTimeout(() => setFeedback(''), 3000);
+            return;
+          }
+          if (jugador1 === jugador2) {
+            setFeedback('⚠️ Jugador 1 y 2 no pueden ser el mismo.');
+            setTimeout(() => setFeedback(''), 3000);
+            return;
+          }
+          if (ptsJ1 === ptsJ2) {
+            setFeedback('⚠️ No hay empates en el Truco.');
+            setTimeout(() => setFeedback(''), 3000);
+            return;
+          }
+
+          const ganaJ1 = ptsJ1 > ptsJ2;
+          const ganadorStr = ganaJ1 ? jugador1 : jugador2;
+          const perdedorStr = ganaJ1 ? jugador2 : jugador1;
+          const ptsGanador = ganaJ1 ? ptsJ1 : ptsJ2;
+          const ptsPerdedor = ganaJ1 ? ptsJ2 : ptsJ1;
+          const ventaja = ptsGanador - ptsPerdedor;
+
+          setIsSubmitting(true);
+          try {
+            const nuevaPartida = {
+              id: Date.now().toString(),
+              tipo: '1v1',
+              ganador: ganadorStr,
+              perdedor: perdedorStr,
+              ganadores: [ganadorStr],
+              perdedores: [perdedorStr],
+              ptsGanador,
+              ptsPerdedor,
+              puntosGanadorPorJugador: 1,
+              ventaja: ventaja > 0 ? ventaja : 0,
+              fecha: new Date().toLocaleDateString('es-AR'),
+              fechaIso: currentIsoDate,
+              estado: esAdmin ? 'APROBADA' : 'PENDIENTE',
+              usuarioCarga: currentUser?.email || 'desconocido',
+              jugadorCarga: currentUser?.jugadorNombre || 'desconocido'
+            };
+
+            try {
+              const { db, auth, appId, setDoc, doc, signInAnonymously } = window.TrucoDB || {};
+              if (auth && !auth.currentUser) {
+                try { await signInAnonymously(auth); } catch(err){}
+              }
+              if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'partidas', nuevaPartida.id), nuevaPartida);
+            } catch (err) {}
+
+            // Si es Admin, se aprueba directo y se actualiza H2H numérico al instante
+            if (esAdmin) {
+              const updated = updateNumericH2H(ganadorStr, perdedorStr, true, h2hData);
+              setH2hData(updated);
+            }
+
+            setPartidas(prev => [nuevaPartida, ...prev]);
+
+            // Reset anotadores
+            setPtsJ1(0);
+            setPtsJ2(0);
+
+            setFeedback(esAdmin ? '✅ Partida 1vs1 cargada e ingresada.' : '⏳ Solicitud 1vs1 enviada a SAMU.');
+            setTimeout(() => setFeedback(''), 4000);
+          } finally {
+            setIsSubmitting(false);
+          }
+
+        } else {
+          // 2vs2
+          if (!e1j1 || !e1j2 || !e2j1 || !e2j2) {
+            setFeedback('⚠️ Selecciona los 4 jugadores.');
+            setTimeout(() => setFeedback(''), 3000);
+            return;
+          }
+
+          const selecSet = new Set([e1j1, e1j2, e2j1, e2j2]);
+          if (selecSet.size < 4) {
+            setFeedback('⚠️ No puede haber jugadores repetidos.');
+            setTimeout(() => setFeedback(''), 3000);
+            return;
+          }
+
+          if (ptsE1 === ptsE2) {
+            setFeedback('⚠️ No hay empates en el Truco.');
+            setTimeout(() => setFeedback(''), 3000);
+            return;
+          }
+
+          const ganaE1 = ptsE1 > ptsE2;
+          const ganadores = ganaE1 ? [e1j1, e1j2] : [e2j1, e2j2];
+          const perdedores = ganaE1 ? [e2j1, e2j2] : [e1j1, e1j2];
+          const ptsGanador = ganaE1 ? ptsE1 : ptsE2;
+          const ptsPerdedor = ganaE1 ? ptsE2 : ptsE1;
+          const ventaja = ptsGanador - ptsPerdedor;
+
+          setIsSubmitting(true);
+          try {
+            const nuevaPartida = {
+              id: Date.now().toString(),
+              tipo: '2v2',
+              ganador: ganadores.join(' & '),
+              perdedor: perdedores.join(' & '),
+              ganadores,
+              perdedores,
+              ptsGanador,
+              ptsPerdedor,
+              puntosGanadorPorJugador: 2,
+              ventaja: ventaja > 0 ? ventaja : 0,
+              fecha: new Date().toLocaleDateString('es-AR'),
+              fechaIso: currentIsoDate,
+              estado: esAdmin ? 'APROBADA' : 'PENDIENTE',
+              usuarioCarga: currentUser?.email || 'desconocido',
+              jugadorCarga: currentUser?.jugadorNombre || 'desconocido'
+            };
+
+            try {
+              const { db, auth, appId, setDoc, doc, signInAnonymously } = window.TrucoDB || {};
+              if (auth && !auth.currentUser) {
+                try { await signInAnonymously(auth); } catch(err){}
+              }
+              if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'partidas', nuevaPartida.id), nuevaPartida);
+            } catch (err) {}
+
+            if (esAdmin) {
+              let updated = { ...h2hData };
+              ganadores.forEach(g => {
+                perdedores.forEach(p => {
+                  updated = updateNumericH2H(g, p, true, updated);
+                });
+              });
+              setH2hData(updated);
+            }
+
+            setPartidas(prev => [nuevaPartida, ...prev]);
+
+            setPtsE1(0);
+            setPtsE2(0);
+
+            setFeedback(esAdmin ? '✅ Partida 2vs2 cargada! (+2 Pts a cada ganador).' : '⏳ Solicitud 2vs2 enviada a SAMU.');
+            setTimeout(() => setFeedback(''), 4000);
+          } finally {
+            setIsSubmitting(false);
+          }
+        }
+      };
+
+      // Reinicio completo de Tabla por Admin (Opcional iniciar nueva temporada)
+      const handleResetLeague = async (e) => {
+        e.preventDefault();
+        if (resetPassword === ADMIN_PASS || resetPassword === 'reiniciosoygay') {
+          try {
+            const { db, appId, deleteDoc, doc, setDoc } = window.TrucoDB || {};
+            if (db) {
+              for (const p of partidas) {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'partidas', p.id));
+              }
+              // Reset H2H
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'h2h_summary', 'main'), { pairs: {} });
+              // Nueva Temporada
+              const newSeason = {
+                seasonNumber: seasonConfig.seasonNumber + 1,
+                startDate: new Date().toISOString(),
+                durationDays: SEASON_DAYS
+              };
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'season_config', 'main'), newSeason);
+              setSeasonConfig(newSeason);
+            }
+          } catch (err) {}
+
+          setPartidas([]);
+          setH2hData({});
+          setShowResetModal(false);
+          setResetPassword('');
+          setResetError('');
+          setFeedback('🔄 Liga y Temporada reiniciadas exitosamente por el Administrador.');
+          setTimeout(() => setFeedback(''), 4000);
+        } else {
+          setResetError('Contraseña de Administrador incorrecta.');
+        }
+      };
+
+      const exportarCSV = () => {
+        const headers = ["Jugador", "Puntos", "Ganadas", "Perdidas", "PJ", "Pts_Ventaja", "WR%", "KDA"];
+        const rows = rankingData.map(r => [
+          r.nombre, r.puntos, r.ganadas, r.perdidas, r.pj, r.ptsVentaja, `${r.wrPct}%`, r.kda
+        ]);
+        
+        let csvContent = "data:text/csv;charset=utf-8," 
+          + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Truco_League_Season_${seasonConfig.seasonNumber}_Stats.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      // Consulta O(1) ultra-rápida del H2H Numérico
+      const getH2HNumericStats = (playerA, playerB) => {
+        if (!playerA || !playerB || playerA === playerB) return { winsA: 0, winsB: 0, total: 0 };
+        const [pMin, pMax] = [playerA, playerB].sort();
+        const pairKey = `${pMin}:${pMax}`;
+        const record = h2hData[pairKey];
+
+        if (!record) return { winsA: 0, winsB: 0, total: 0 };
+
+        if (pMin === playerA) {
+          return { winsA: record.p1Wins || 0, winsB: record.p2Wins || 0, total: record.total || 0 };
+        } else {
+          return { winsA: record.p2Wins || 0, winsB: record.p1Wins || 0, total: record.total || 0 };
+        }
+      };
+
+      const currentH2H = useMemo(() => {
+        return getH2HNumericStats(h2hP1, h2hP2);
+      }, [h2hData, h2hP1, h2hP2]);
+
+      return (
+        <div className={`min-h-screen flex flex-col bg-slate-950 text-slate-100 ${deviceMode === 'pc' ? 'pb-6' : 'pb-20 lg:pb-0'}`}>
+          
+          {/* Header principal */}
+          <header className="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl">🎴</span>
+                <div>
+                  <h1 className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 bg-clip-text text-transparent flex items-center gap-2">
+                    TRUCO LEAGUE
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                      T{seasonInfo.number} • Día {seasonInfo.currentDay}/{SEASON_DAYS}
+                    </span>
+                  </h1>
+                  <p className="text-xs text-slate-400 font-medium flex items-center gap-1">
+                    <IconShield /> Admin SAMU
+                  </p>
+                </div>
+              </div>
+
+              {/* Menú de navegación desktop */}
+              <nav className={`${deviceMode === 'pc' ? 'flex' : deviceMode === 'mobile' ? 'hidden' : 'hidden lg:flex'} space-x-1 bg-slate-800/60 p-1 rounded-xl border border-slate-700/50 overflow-x-auto`}>
+                <button
+                  onClick={() => setActiveTab('ranking')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    activeTab === 'ranking' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  🏆 Posiciones
+                </button>
+                <button
+                  onClick={() => setActiveTab('cargar')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    activeTab === 'cargar' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  ⚡ Jugar / Cargar
+                </button>
+                <button
+                  onClick={() => setActiveTab('aprobaciones')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                    activeTab === 'aprobaciones' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  ⏳ Permisos ({pendingPartidas.length})
+                </button>
+                {currentUser?.isAdmin && (
+                  <button
+                    onClick={() => setActiveTab('cuentas')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-amber-500/10 text-amber-300 border border-amber-500/30 ${
+                      activeTab === 'cuentas' ? 'bg-amber-600 text-white' : ''
+                    }`}
+                  >
+                    👑 Solicitudes ({pendingCuentas.length})
+                  </button>
+                )}
+                <button
+                  onClick={() => setActiveTab('historial')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    activeTab === 'historial' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  📜 Hoy ({partidasDeHoy.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('h2h')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    activeTab === 'h2h' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  ⚔️ H2H (O1)
+                </button>
+                {currentUser && (
+                  <button
+                    onClick={() => setActiveTab('perfil')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                      activeTab === 'perfil' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    👤 Perfil
+                  </button>
+                )}
+                {currentUser?.isAdmin && (
+                  <button
+                    onClick={() => setActiveTab('auditoria')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all border border-purple-500/30 ${
+                      activeTab === 'auditoria' ? 'bg-purple-700 text-white shadow' : 'text-purple-300 hover:text-white'
+                    }`}
+                  >
+                    📋 Accesos
+                  </button>
+                )}
+              </nav>
+
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  onClick={() => setShowDeviceModal(true)}
+                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl border border-slate-700 font-bold transition flex items-center gap-1 shadow-sm"
+                  title="Cambiar vista PC / Móvil"
+                >
+                  {deviceMode === 'pc' ? '💻 PC' : deviceMode === 'mobile' ? '📱 Móvil' : '⚙️ Vista'}
+                </button>
+
+                {currentUser ? (
+                  <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs">
+                    <div className="text-right">
+                      <p className="font-bold text-white flex items-center justify-end gap-1">
+                        {currentUser.isAdmin ? (
+                          <span className="bg-amber-500/20 text-amber-300 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/40">ADMIN SAMU 👑</span>
+                        ) : (
+                          <span className="text-emerald-400 font-black">{currentUser.jugadorNombre}</span>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="ml-1 text-slate-400 hover:text-red-400 text-xs font-bold transition p-1"
+                      title="Cerrar sesión"
+                    >
+                      🚪
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setAuthMode('LOGIN'); setModalError(''); setShowLoginModal(true); }}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-xl shadow transition"
+                  >
+                    🔑 Ingresar
+                  </button>
+                )}
+
+                <button
+                  onClick={exportarCSV}
+                  className="hidden sm:inline-flex items-center px-3 py-1.5 border border-slate-700 hover:border-emerald-500/50 text-xs font-medium rounded-xl text-slate-300 hover:text-white bg-slate-800/80 transition"
+                >
+                  <IconDownload /> CSV
+                </button>
+
+                <button
+                  onClick={copyShareableLink}
+                  className="px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-xs font-bold text-emerald-300 rounded-xl transition flex items-center gap-1 shadow-sm"
+                  title="Copiar enlace"
+                >
+                  🔗 Link
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Cuerpo principal */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+            
+            {/* Banner Informativo de Temporada de 45 días */}
+            <div className="badge-season p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏆</span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-amber-300">
+                    Temporada {seasonInfo.number} (Duración: {SEASON_DAYS} Días)
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Transcurridos: <strong>{seasonInfo.currentDay} de {SEASON_DAYS} días</strong> • Restan: <strong className="text-emerald-400">{seasonInfo.daysRemaining} días</strong>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] bg-slate-900/80 text-slate-300 px-3 py-1 rounded-xl border border-slate-700">
+                  ⚡ Rendimiento optimizado: Historial filtrado a hoy
+                </span>
+              </div>
+            </div>
+
+            {feedback && (
+              <div className="bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 px-4 py-3 rounded-xl flex items-center justify-between shadow-lg">
+                <span className="text-sm font-medium">{feedback}</span>
+                <span className="text-xl">✨</span>
+              </div>
+            )}
+
+            {/* TABLA DE POSICIONES */}
+            {activeTab === 'ranking' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
+                      🏆 Tabla de Posiciones Sincronizada
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      1vs1 otorga <strong>1 Pt</strong>. 2vs2 otorga <strong>2 Pts</strong> a cada ganador. Todos los partidos pasados cuentan para esta tabla.
+                    </p>
+                  </div>
+
+                  {currentUser?.isAdmin && (
+                    <button
+                      onClick={() => { setShowResetModal(true); setResetError(''); setResetPassword(''); }}
+                      className="px-3 py-1.5 text-xs font-bold text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      🗑️ Reiniciar Tabla / Temporada
+                    </button>
+                  )}
+                </div>
+
+                <div className="glass-card rounded-2xl overflow-hidden border border-slate-800 shadow-xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-slate-300">
+                      <thead className="bg-slate-900/90 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                        <tr>
+                          <th className="py-4 px-3 text-center">Pos</th>
+                          <th className="py-4 px-3">Jugador</th>
+                          <th className="py-4 px-3 text-center">Pts</th>
+                          <th className="py-4 px-3 text-center">G / P</th>
+                          <th className="py-4 px-3 text-center hidden sm:table-cell">PJ</th>
+                          <th className="py-4 px-3 text-center">Ventaja</th>
+                          <th className="py-4 px-3 text-center">WR %</th>
+                          <th className="py-4 px-3 text-center">KDA</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {rankingData.map((row, idx) => {
+                          const isTop1 = idx === 0 && row.puntos > 0;
+                          const isTop2 = idx === 1 && row.puntos > 0;
+                          const isTop3 = idx === 2 && row.puntos > 0;
+
+                          return (
+                            <tr key={row.nombre} className={`hover:bg-slate-800/40 transition-colors ${isTop1 ? 'bg-amber-500/10 font-medium' : ''}`}>
+                              <td className="py-3 px-3 text-center font-bold">
+                                {isTop1 && <span className="text-lg">🥇</span>}
+                                {isTop2 && <span className="text-lg">🥈</span>}
+                                {isTop3 && <span className="text-lg">🥉</span>}
+                                {!isTop1 && !isTop2 && !isTop3 && <span className="text-slate-500 text-xs">#{idx + 1}</span>}
+                              </td>
+                              <td className="py-3 px-3 font-bold text-white">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isTop1 ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}></span>
+                                  <span className="text-sm font-extrabold">{row.nombre}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 text-center font-black text-emerald-400 text-base">{row.puntos}</td>
+                              <td className="py-3 px-3 text-center text-xs font-semibold whitespace-nowrap">
+                                <span className="text-emerald-400">{row.ganadas}</span>
+                                <span className="text-slate-600 px-0.5">/</span>
+                                <span className="text-red-400">{row.perdidas}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center text-slate-400 font-medium text-xs hidden sm:table-cell">{row.pj}</td>
+                              <td className="py-3 px-3 text-center font-bold text-xs">
+                                <span className={row.ptsVentaja > 0 ? 'text-emerald-400' : 'text-slate-400'}>
+                                  {row.ptsVentaja > 0 ? `+${row.ptsVentaja}` : row.ptsVentaja}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <div className="w-10 sm:w-14 bg-slate-800 rounded-full h-1.5 overflow-hidden hidden sm:block">
+                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full" style={{ width: `${row.wrPct}%` }}></div>
+                                  </div>
+                                  <span className="font-semibold text-xs text-slate-200">{row.wrPct}%</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <span className="px-2 py-0.5 rounded-md bg-cyan-950 text-cyan-300 border border-cyan-800/50 font-mono font-bold text-xs">
+                                  {row.kda}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* BOTÓN PERSONALIZABLE */}
+                <div className="pt-2 text-center">
+                  <a
+                    href={EXTERNAL_LINK_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-2xl shadow-xl border border-emerald-400/30 transition-all active:scale-95 gap-2 group"
+                  >
+                    <span>{EXTERNAL_LINK_LABEL}</span>
+                    <IconExternalLink />
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* SECCIÓN CARGAR / JUGAR */}
+            {activeTab === 'cargar' && (
+              <div className="max-w-2xl mx-auto">
+                <div className="glass-card rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-6">
+                  
+                  {/* Selector 1v1 vs 2v2 */}
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <div>
+                      <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+                        ⚡ Registrar Partido de Truco
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Anotador oficial de Truco Argentino a 30 puntos (Malas y Buenas).
+                      </p>
+                    </div>
+
+                    <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setModoPartida('1v1')}
+                        className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
+                          modoPartida === '1v1' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        👤 1 vs 1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModoPartida('2v2')}
+                        className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
+                          modoPartida === '2v2' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        👥 2 vs 2
+                      </button>
+                    </div>
+                  </div>
+
+                  {!currentUser ? (
+                    <div className="bg-slate-900/80 border border-amber-500/30 rounded-xl p-6 text-center space-y-3">
+                      <span className="text-3xl">🔒</span>
+                      <p className="text-sm font-bold text-white">Ingresa a tu perfil para cargar resultados</p>
+                      <button
+                        onClick={() => { setAuthMode('LOGIN'); setModalError(''); setShowLoginModal(true); }}
+                        className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-xl shadow"
+                      >
+                        Ingresar a la Liga
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleRegistrarPartida} className="space-y-6">
+                      
+                      {/* Formulario 1vs1 */}
+                      {modoPartida === '1v1' && (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            
+                            {/* Jugador 1 */}
+                            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-2">
+                              <label className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 block">
+                                Jugador 1
+                              </label>
+                              <select
+                                value={jugador1}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setJugador1(val);
+                                  if (jugador2 === val) {
+                                    setJugador2(jugadores.find(j => j !== val) || '');
+                                  }
+                                }}
+                                className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2.5 text-xs font-bold"
+                              >
+                                {jugadores.map(j => (
+                                  <option key={`j1-opt-${j}`} value={j}>{j}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Jugador 2 */}
+                            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-2">
+                              <label className="text-xs font-extrabold uppercase tracking-wider text-cyan-400 block">
+                                Jugador 2
+                              </label>
+                              <select
+                                value={jugador2}
+                                onChange={e => setJugador2(e.target.value)}
+                                className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2.5 text-xs font-bold"
+                              >
+                                <option value="">-- Seleccionar Oponente --</option>
+                                {jugadores.filter(j => j !== jugador1).map(j => (
+                                  <option key={`j2-opt-${j}`} value={j}>{j}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Anotadores Truco 1v1 */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <AnotadorTruco
+                              label={`Puntos: ${jugador1}`}
+                              puntos={ptsJ1}
+                              onChange={setPtsJ1}
+                            />
+                            <AnotadorTruco
+                              label={`Puntos: ${jugador2 || 'Jugador 2'}`}
+                              puntos={ptsJ2}
+                              onChange={setPtsJ2}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Formulario 2vs2 */}
+                      {modoPartida === '2v2' && (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            
+                            {/* Equipo 1 */}
+                            <div className="bg-slate-900 p-4 rounded-2xl border border-emerald-500/30 space-y-3">
+                              <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 block">
+                                👥 Equipo 1
+                              </span>
+                              <div>
+                                <label className="text-[10px] text-slate-400 block mb-1">Jugador A</label>
+                                <select
+                                  value={e1j1}
+                                  onChange={e => setE1j1(e.target.value)}
+                                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2 text-xs font-bold"
+                                >
+                                  {jugadores.map(j => <option key={`e1j1-${j}`} value={j}>{j}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-slate-400 block mb-1">Jugador B</label>
+                                <select
+                                  value={e1j2}
+                                  onChange={e => setE1j2(e.target.value)}
+                                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2 text-xs font-bold"
+                                >
+                                  <option value="">-- Seleccionar --</option>
+                                  {jugadores.filter(j => j !== e1j1).map(j => <option key={`e1j2-${j}`} value={j}>{j}</option>)}
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Equipo 2 */}
+                            <div className="bg-slate-900 p-4 rounded-2xl border border-cyan-500/30 space-y-3">
+                              <span className="text-xs font-extrabold uppercase tracking-wider text-cyan-400 block">
+                                👥 Equipo 2
+                              </span>
+                              <div>
+                                <label className="text-[10px] text-slate-400 block mb-1">Jugador A</label>
+                                <select
+                                  value={e2j1}
+                                  onChange={e => setE2j1(e.target.value)}
+                                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2 text-xs font-bold"
+                                >
+                                  <option value="">-- Seleccionar --</option>
+                                  {jugadores.filter(j => j !== e1j1 && j !== e1j2).map(j => <option key={`e2j1-${j}`} value={j}>{j}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-slate-400 block mb-1">Jugador B</label>
+                                <select
+                                  value={e2j2}
+                                  onChange={e => setE2j2(e.target.value)}
+                                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2 text-xs font-bold"
+                                >
+                                  <option value="">-- Seleccionar --</option>
+                                  {jugadores.filter(j => j !== e1j1 && j !== e1j2 && j !== e2j1).map(j => <option key={`e2j2-${j}`} value={j}>{j}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Anotadores Truco 2v2 */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <AnotadorTruco
+                              label={`Equipo 1: ${e1j1 || 'J1'} & ${e1j2 || 'J2'}`}
+                              puntos={ptsE1}
+                              onChange={setPtsE1}
+                            />
+                            <AnotadorTruco
+                              label={`Equipo 2: ${e2j1 || 'J3'} & ${e2j2 || 'J4'}`}
+                              puntos={ptsE2}
+                              onChange={setPtsE2}
+                            />
+                          </div>
+
+                          <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-center text-xs text-amber-300 font-bold">
+                            🏆 Ganadores del 2vs2 suman +2 Pts cada uno.
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-extrabold text-base rounded-2xl shadow-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <IconPlus /> {isSubmitting ? 'Procesando...' : currentUser.isAdmin ? `Cargar Partida ${modoPartida}` : `Solicitar Permiso ${modoPartida} a SAMU`}
+                      </button>
+                    </form>
+                  )}
+
+                  {currentUser?.isAdmin && (
+                    <div className="mt-8 pt-6 border-t border-slate-800">
+                      <h3 className="text-sm font-extrabold text-white mb-3 flex items-center gap-2">
+                        ➕ Agregar Jugador
+                      </h3>
+                      <form onSubmit={handleAgregarJugador} className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Nombre (ej. CARLOS)"
+                          value={nuevoJugador}
+                          onChange={e => setNuevoJugador(e.target.value)}
+                          className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white uppercase focus:outline-none focus:border-emerald-500"
+                        />
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition"
+                        >
+                          Agregar
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* PERMISOS / APROBACIONES PENDIENTES */}
+            {activeTab === 'aprobaciones' && (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-extrabold text-white">⏳ Permisos de Partidas Pendientes</h2>
+                {pendingPartidas.length === 0 ? (
+                  <div className="glass-card rounded-2xl p-8 text-center text-slate-400">
+                    <span className="text-4xl">✨</span>
+                    <p className="mt-2 text-sm">No hay partidas pendientes de aprobación.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {pendingPartidas.map(p => (
+                      <div key={p.id} className="glass-card rounded-2xl p-5 border border-amber-500/30 space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                            PENDIENTE ({p.tipo || '1v1'})
+                          </span>
+                          <span className="text-slate-400">{p.fecha}</span>
+                        </div>
+                        <div className="text-base font-black text-white flex justify-between items-center">
+                          <span className="text-emerald-400">👑 {p.ganador} ({p.ptsGanador})</span>
+                          <span className="text-xs text-slate-500">VS</span>
+                          <span className="text-red-400">💀 {p.perdedor} ({p.ptsPerdedor})</span>
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          Cargado por: <strong className="text-slate-200">{p.jugadorCarga || p.usuarioCarga}</strong>
+                        </div>
+                        {currentUser?.isAdmin ? (
+                          <div className="flex gap-2 pt-2">
+                            <button
+                              onClick={() => handleAprobarPartida(p.id)}
+                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow"
+                            >
+                              ✅ Aprobar
+                            </button>
+                            <button
+                              onClick={() => handleRechazarPartida(p.id)}
+                              className="flex-1 py-2 bg-red-600/80 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition shadow"
+                            >
+                              ❌ Rechazar
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-amber-300 italic">Esperando revisión del Administrador SAMU...</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* CUENTAS PENDIENTES */}
+            {activeTab === 'cuentas' && currentUser?.isAdmin && (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-extrabold text-white">👑 Solicitudes de Registro de Perfiles</h2>
+                {pendingCuentas.length === 0 ? (
+                  <div className="glass-card rounded-2xl p-8 text-center text-slate-400">
+                    <span className="text-4xl">👥</span>
+                    <p className="mt-2 text-sm">No hay perfiles pendientes de registro.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {pendingCuentas.map(c => (
+                      <div key={c.email} className="glass-card rounded-2xl p-5 border border-amber-500/30 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-extrabold text-emerald-400">{c.nombre}</span>
+                          <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">PENDIENTE</span>
+                        </div>
+                        <p className="text-xs text-slate-300 font-mono">{c.email}</p>
+                        <div className="flex gap-2 pt-2">
+                          <button
+                            onClick={() => handleAprobarCuenta(c.email)}
+                            className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow"
+                          >
+                            ✅ Aprobar
+                          </button>
+                          <button
+                            onClick={() => handleRechazarCuenta(c.email)}
+                            className="flex-1 py-2 bg-red-600/80 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition shadow"
+                          >
+                            ❌ Rechazar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* HISTORIAL FILTRADO - SOLO PARTIDAS DE HOY */}
+            {activeTab === 'historial' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
+                      📜 Partidas Jugadas Hoy ({partidasDeHoy.length})
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Para optimizar la carga, solo se muestran las partidas jugadas hoy. El ranking y H2H conservan todo.
+                    </p>
+                  </div>
+
+                  {currentUser?.isAdmin && (
+                    <button
+                      onClick={() => setMostrarHistorialCompleto(!mostrarHistorialCompleto)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-xl border border-slate-700 transition"
+                    >
+                      {mostrarHistorialCompleto ? '👁️ Ver Solo Hoy' : '📂 Modo Admin: Ver Todas'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Selección entre vista Hoy o Completa si Admin lo activa */}
+                {((mostrarHistorialCompleto ? approvedPartidas : partidasDeHoy).length === 0) ? (
+                  <div className="glass-card rounded-2xl p-8 text-center text-slate-400">
+                    <span className="text-4xl">🎴</span>
+                    <p className="mt-2 text-sm">No hay partidas registradas hoy todavía.</p>
+                  </div>
+                ) : (
+                  <div className="glass-card rounded-2xl overflow-hidden border border-slate-800 shadow-xl">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm text-slate-300">
+                        <thead className="bg-slate-900/90 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                          <tr>
+                            <th className="py-3 px-4">Modo</th>
+                            <th className="py-3 px-4">Ganadores</th>
+                            <th className="py-3 px-4">Perdedores</th>
+                            <th className="py-3 px-4 text-center">Resultado</th>
+                            <th className="py-3 px-4 text-center">Ventaja</th>
+                            {currentUser?.isAdmin && <th className="py-3 px-4 text-center">Acción</th>}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {(mostrarHistorialCompleto ? approvedPartidas : partidasDeHoy).map(p => (
+                            <tr key={p.id} className="hover:bg-slate-800/40 transition">
+                              <td className="py-3 px-4 text-xs font-bold text-slate-400">
+                                <span className={`px-2 py-0.5 rounded ${p.tipo === '2v2' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-slate-800 text-slate-300'}`}>
+                                  {p.tipo || '1v1'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-emerald-400">👑 {p.ganador}</td>
+                              <td className="py-3 px-4 font-semibold text-red-400">💀 {p.perdedor}</td>
+                              <td className="py-3 px-4 text-center font-bold text-xs">{p.ptsGanador} - {p.ptsPerdedor}</td>
+                              <td className="py-3 px-4 text-center font-bold text-emerald-400 text-xs">+{p.ventaja}</td>
+                              {currentUser?.isAdmin && (
+                                <td className="py-3 px-4 text-center">
+                                  <button
+                                    onClick={() => handleEliminarPartida(p.id)}
+                                    className="p-1.5 hover:bg-red-950/60 rounded-lg text-red-400 transition"
+                                    title="Eliminar partida"
+                                  >
+                                    <IconTrash />
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* DUELOS H2H GUARDADOS COMO NÚMERO SIMPLE O(1) */}
+            {activeTab === 'h2h' && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                <div className="text-center">
+                  <h2 className="text-2xl font-extrabold text-white">⚔️ Enfrentamiento Directo H2H</h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Guardado como número simple independiente para máxima rapidez de carga.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 block mb-1">Jugador 1</label>
+                    <select
+                      value={h2hP1}
+                      onChange={e => setH2hP1(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2.5 text-xs font-bold"
+                    >
+                      {jugadores.map(j => <option key={`h2h1-${j}`} value={j}>{j}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 block mb-1">Jugador 2</label>
+                    <select
+                      value={h2hP2}
+                      onChange={e => setH2hP2(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2.5 text-xs font-bold"
+                    >
+                      <option value="">-- Seleccionar --</option>
+                      {jugadores.filter(j => j !== h2hP1).map(j => <option key={`h2h2-${j}`} value={j}>{j}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {h2hP1 && h2hP2 ? (
+                  <div className="glass-card rounded-2xl p-6 text-center space-y-6 border border-slate-800 shadow-xl">
+                    <div className="flex justify-around items-center">
+                      <div className="text-center">
+                        <p className="text-4xl font-black text-emerald-400">{currentH2H.winsA}</p>
+                        <p className="text-sm font-extrabold text-white mt-1">{h2hP1}</p>
+                        <span className="text-[10px] text-slate-400">Victorias</span>
+                      </div>
+                      
+                      <div className="text-center px-4">
+                        <span className="text-xl font-black text-slate-600 block">VS</span>
+                        <span className="text-xs font-bold text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800 mt-1 inline-block">
+                          {currentH2H.total} Enfrentamientos
+                        </span>
+                      </div>
+
+                      <div className="text-center">
+                        <p className="text-4xl font-black text-emerald-400">{currentH2H.winsB}</p>
+                        <p className="text-sm font-extrabold text-white mt-1">{h2hP2}</p>
+                        <span className="text-[10px] text-slate-400">Victorias</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 text-left text-xs text-slate-300 space-y-1">
+                      <p className="font-bold text-amber-300">📊 Estado del Historial H2H:</p>
+                      <p>• {h2hP1}: {currentH2H.winsA} victorias H2H acumuladas.</p>
+                      <p>• {h2hP2}: {currentH2H.winsB} victorias H2H acumuladas.</p>
+                      <p className="text-[11px] text-slate-500 pt-1">
+                        *Los datos de H2H se almacenan directamente en un contador numérico simple para evitar descargas pesadas de partidas pasadas.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="glass-card rounded-2xl p-6 text-center text-slate-400 text-xs">
+                    Selecciona dos jugadores para comparar su historial H2H en tiempo real.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* MI PERFIL */}
+            {activeTab === 'perfil' && currentUser && (
+              <div className="max-w-xl mx-auto space-y-6">
+                <div className="glass-card rounded-2xl p-6 border border-slate-800 space-y-4 shadow-xl">
+                  <h2 className="text-xl font-extrabold text-white flex items-center gap-2">👤 Mi Perfil Oficial</h2>
+                  <div className="space-y-2 text-xs">
+                    <p className="text-slate-400">Nombre de Jugador: <strong className="text-emerald-400 font-bold text-sm">{currentUser.jugadorNombre}</strong></p>
+                    <p className="text-slate-400">Correo Electrónico: <strong className="text-white font-mono">{currentUser.email}</strong></p>
+                    <p className="text-slate-400">Rol: <strong className="text-amber-400">{currentUser.isAdmin ? 'ADMINISTRADOR SAMU 👑' : 'JUGADOR VERIFICADO'}</strong></p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AUDITORÍA */}
+            {activeTab === 'auditoria' && currentUser?.isAdmin && (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-extrabold text-white">📋 Log de Accesos</h2>
+                <div className="glass-card rounded-2xl overflow-hidden border border-slate-800">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-slate-300">
+                      <thead className="bg-slate-900/90 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                        <tr>
+                          <th className="py-3 px-4">Hora</th>
+                          <th className="py-3 px-4">Perfil</th>
+                          <th className="py-3 px-4">Correo</th>
+                          <th className="py-3 px-4">Rol</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {auditLogs.map(log => (
+                          <tr key={log.id} className="hover:bg-slate-800/40">
+                            <td className="py-3 px-4 text-xs font-mono text-slate-400">{log.fecha}</td>
+                            <td className="py-3 px-4 font-bold text-white">{log.jugadorNombre}</td>
+                            <td className="py-3 px-4 text-xs font-mono text-slate-300">{log.email}</td>
+                            <td className="py-3 px-4 text-xs font-bold text-emerald-400">{log.role}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* Menú inferior móvil */}
+          {(deviceMode === 'mobile' || (!deviceMode)) && (
+            <div className={`fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 flex justify-around items-center py-2 px-1 shadow-2xl ${deviceMode === 'mobile' ? 'flex' : 'lg:hidden'}`}>
+              <button
+                onClick={() => setActiveTab('ranking')}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition ${
+                  activeTab === 'ranking' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400'
+                }`}
+              >
+                <span className="text-xl">🏆</span>
+                <span className="text-[10px] tracking-tight mt-0.5">Ranking</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('cargar')}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition ${
+                  activeTab === 'cargar' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400'
+                }`}
+              >
+                <span className="text-xl">⚡</span>
+                <span className="text-[10px] tracking-tight mt-0.5">Jugar</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('aprobaciones')}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition relative ${
+                  activeTab === 'aprobaciones' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400'
+                }`}
+              >
+                <span className="text-xl">⏳</span>
+                <span className="text-[10px] tracking-tight mt-0.5">Permisos</span>
+                {pendingPartidas.length > 0 && (
+                  <span className="absolute top-0 right-1 w-4 h-4 bg-amber-500 text-slate-950 text-[9px] font-black rounded-full flex items-center justify-center">
+                    {pendingPartidas.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('historial')}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition ${
+                  activeTab === 'historial' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400'
+                }`}
+              >
+                <span className="text-xl">📜</span>
+                <span className="text-[10px] tracking-tight mt-0.5">Hoy</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('h2h')}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition ${
+                  activeTab === 'h2h' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400'
+                }`}
+              >
+                <span className="text-xl">⚔️</span>
+                <span className="text-[10px] tracking-tight mt-0.5">H2H</span>
+              </button>
+
+              {currentUser ? (
+                <button
+                  onClick={() => setActiveTab('perfil')}
+                  className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition ${
+                    activeTab === 'perfil' ? 'text-emerald-400 font-bold scale-105' : 'text-slate-400'
+                  }`}
+                >
+                  <span className="text-xl">👤</span>
+                  <span className="text-[10px] tracking-tight mt-0.5">Perfil</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setAuthMode('LOGIN'); setModalError(''); setShowLoginModal(true); }}
+                  className="flex flex-col items-center justify-center py-1 px-2 text-emerald-400"
+                >
+                  <span className="text-xl">🔑</span>
+                  <span className="text-[10px] font-bold mt-0.5">Ingresar</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Modal Modo Dispositivo */}
+          {showDeviceModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+              <div className="glass-card rounded-2xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-800 shadow-2xl">
+                <span className="text-4xl">📱💻</span>
+                <h3 className="text-lg font-extrabold text-white">Selecciona tu Modo de Vista</h3>
+                <p className="text-xs text-slate-400">Puedes cambiar entre menú superior de PC o barra flotante móvil en cualquier momento.</p>
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <button
+                    onClick={() => handleSelectDevice('pc')}
+                    className="py-3 bg-slate-800 hover:bg-slate-700 font-bold text-xs text-white rounded-xl border border-slate-700 transition"
+                  >
+                    💻 Modo PC
+                  </button>
+                  <button
+                    onClick={() => handleSelectDevice('mobile')}
+                    className="py-3 bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white rounded-xl shadow transition"
+                  >
+                    📱 Modo Móvil
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Login / Registro */}
+          {showLoginModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="glass-card rounded-2xl p-6 max-w-md w-full border border-slate-800 shadow-2xl space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <h3 className="text-lg font-extrabold text-white">
+                    {authMode === 'LOGIN' ? '🔑 Ingresar a la Liga' : '📝 Solicitar Registro'}
+                  </h3>
+                  <button onClick={() => setShowLoginModal(false)} className="text-slate-400 hover:text-white font-bold text-sm p-1">
+                    ✕
+                  </button>
+                </div>
+
+                {modalError && (
+                  <div className="bg-red-950/80 border border-red-800/60 text-red-200 text-xs p-3 rounded-xl">
+                    {modalError}
+                  </div>
+                )}
+
+                {authMode === 'LOGIN' ? (
+                  <form onSubmit={handleLoginSubmit} className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Correo Electrónico</label>
+                      <input
+                        type="email"
+                        placeholder="tuemail@ejemplo.com"
+                        value={loginEmailInput}
+                        onChange={e => setLoginEmailInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Contraseña</label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={loginPasswordInput}
+                        onChange={e => setLoginPasswordInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white rounded-xl shadow transition"
+                    >
+                      {isSubmitting ? 'Iniciando...' : 'Iniciar Sesión'}
+                    </button>
+
+                    <div className="text-center pt-2">
+                      <button
+                        type="button"
+                        onClick={() => { setAuthMode('REGISTER'); setModalError(''); }}
+                        className="text-xs font-bold text-emerald-400 hover:underline"
+                      >
+                        ¿No tienes cuenta? Solicita tu registro aquí
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleRegisterSubmit} className="space-y-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Nombre de Jugador</label>
+                      <input
+                        type="text"
+                        placeholder="EJ: CARLOS"
+                        value={regNombreInput}
+                        onChange={e => setRegNombreInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white uppercase focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Correo Electrónico</label>
+                      <input
+                        type="email"
+                        placeholder="correo@ejemplo.com"
+                        value={loginEmailInput}
+                        onChange={e => setLoginEmailInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Confirmar Correo</label>
+                      <input
+                        type="email"
+                        placeholder="correo@ejemplo.com"
+                        value={regEmailConfirmInput}
+                        onChange={e => setRegEmailConfirmInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Contraseña</label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={loginPasswordInput}
+                        onChange={e => setLoginPasswordInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Confirmar Contraseña</label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={regPasswordConfirmInput}
+                        onChange={e => setRegPasswordConfirmInput(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white rounded-xl shadow transition mt-2"
+                    >
+                      {isSubmitting ? 'Enviando...' : 'Enviar Solicitud a SAMU'}
+                    </button>
+
+                    <div className="text-center pt-1">
+                      <button
+                        type="button"
+                        onClick={() => { setAuthMode('LOGIN'); setModalError(''); }}
+                        className="text-xs font-bold text-slate-400 hover:underline"
+                      >
+                        ¿Ya tienes cuenta? Ingresar
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal Reinicio por Admin */}
+          {showResetModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="glass-card rounded-2xl p-6 max-w-md w-full border border-red-800/50 shadow-2xl space-y-4">
+                <h3 className="text-lg font-extrabold text-red-400">⚠️ Reiniciar Tabla / Temporada</h3>
+                <p className="text-xs text-slate-300">
+                  Esta acción reiniciará las partidas, la tabla de clasificación y dará inicio a la siguiente temporada.
+                </p>
+
+                {resetError && <p className="text-xs text-red-400 font-bold">{resetError}</p>}
+
+                <form onSubmit={handleResetLeague} className="space-y-4">
+                  <input
+                    type="password"
+                    placeholder="Contraseña del Admin SAMU"
+                    value={resetPassword}
+                    onChange={e => setResetPassword(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-red-500"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowResetModal(false)}
+                      className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 rounded-xl"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-xs font-bold text-white rounded-xl shadow"
+                    >
+                      Confirmar Reinicio
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Eliminar Partida */}
+          {selectedMatchToDelete && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="glass-card rounded-2xl p-6 max-w-md w-full border border-red-800/50 shadow-2xl space-y-4">
+                <h3 className="text-lg font-extrabold text-red-400">🗑️ Eliminar Partida</h3>
+                <p className="text-xs text-slate-300">Ingresa la contraseña de administrador para confirmar la eliminación de este partido.</p>
+
+                {matchDeleteError && <p className="text-xs text-red-400 font-bold">{matchDeleteError}</p>}
+
+                <form onSubmit={handleConfirmEliminarPartida} className="space-y-4">
+                  <input
+                    type="password"
+                    placeholder="Contraseña de Admin"
+                    value={matchDeletePassword}
+                    onChange={e => setMatchDeletePassword(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMatchToDelete(null)}
+                      className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 rounded-xl"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-xs font-bold text-white rounded-xl shadow"
+                    >
+                      Eliminar Partida
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
