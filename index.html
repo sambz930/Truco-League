@@ -1494,33 +1494,37 @@ if (gs.envidoState === 'AVAILABLE' && myPlayedCount >= 1 && opPlayedCount >= 1) 
                 btnNoQuiero.textContent = "NO QUIERO";
                 btnNoQuiero.onclick = () => respondCall('NO_QUIERO');
                 grid.appendChild(btnNoQuiero);
+if (call.type === 'truco') {
+            // Evaluar si YO ya jugué alguna carta en esta mano
+            const yoYaJugue = (gs.played && gs.played[myId]) ? gs.played[myId].length > 0 : false;
 
-                if (call.type === 'truco') {
-                    if (isFirstRoundActive && gs.envidoState === 'AVAILABLE') {
-                        grid.appendChild(createActionButton('ENVIDO', () => cantAction('envido'), 'bg-wood-700 text-amber-100 border-gold/40'));
-                        grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold/40'));
-                        grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
-                    } else {
-                        grid.appendChild(createActionButton('RETRUCO', () => cantAction('retruco'), 'btn-bar-gold'));
-                    }
-                } else if (call.type === 'envido') {
-                    grid.appendChild(createActionButton('ENVIDO + ENVIDO', () => cantAction('envido_envido'), 'bg-wood-700 text-amber-100 border-gold/40'));
-                    grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold/40'));
-                    grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
-                } else if (call.type === 'envido_envido') {
-                    grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold/40'));
-                    grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
-                } else if (call.type === 'real_envido') {
-                    grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
-                } else if (call.type === 'retruco') {
-                    grid.appendChild(createActionButton('VALE CUATRO', () => cantAction('valecuatro'), 'btn-bar-gold'));
-                }
-                return;
+            // Si el envido está disponible y YO no tiré ninguna carta, me permite cantar Envido al Truco
+            if (gs.envidoState === 'AVAILABLE' && !yoYaJugue) {
+                grid.appendChild(createActionButton('ENVIDO', () => cantAction('envido'), 'bg-wood-700 text-amber-100 border-gold'));
+                grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold'));
+                grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
+            } else {
+                grid.appendChild(createActionButton('RETRUCO', () => cantAction('retruco'), 'btn-bar-gold'));
             }
-
+        } else if (call.type === 'envido') {
+            grid.appendChild(createActionButton('ENVIDO + ENVIDO', () => cantAction('envido_envido'), 'bg-wood-700 text-amber-100 border-gold/40'));
+            grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold/40'));
+            grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
+        } else if (call.type === 'envido_envido') {
+            grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold/40'));
+            grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
+        } else if (call.type === 'real_envido') {
+            grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
+        } else if (call.type === 'retruco') {
+            grid.appendChild(createActionButton('VALE CUATRO', () => cantAction('valecuatro'), 'btn-bar-gold'));
+        }
+        return;
             // CASO 2: TURNO NORMAL DE JUEGO
-            const canEnvido = isFirstRoundActive && (gs.envidoState === 'AVAILABLE');
+          // Evaluar si YO ya jugué alguna carta
+const yoYaJugueEnMano = (gs.played && gs.played[myId]) ? gs.played[myId].length > 0 : false;
 
+// El Envido se puede cantar en turno normal si el estado es AVAILABLE y YO no he tirado carta aún
+const canEnvido = gs.envidoState === 'AVAILABLE' && !yoYaJugueEnMano;
             if (canEnvido) {
                 const btnEnvido = createActionButton('ENVIDO', () => cantAction('envido'), 'bg-wood-700 hover:bg-wood-600 text-amber-100 border-gold/40');
                 btnEnvido.disabled = !isMyTurnToPlay;
