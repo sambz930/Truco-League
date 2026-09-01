@@ -125,19 +125,17 @@
 const EXTERNAL_LINK_URL = "https://e118c040.truco-league.pages.dev";
     const EXTERNAL_LINK_LABEL = "🌐 JUGAR ONLINE";
 
-    const DEFAULT_JUGADORES = ["SAMU"];
+   // Extraer herramientas de Firebase asignadas en window.TrucoDB
+    const { 
+        db, auth, collection, doc, setDoc, getDoc, getDocs, 
+        onSnapshot, addDoc, updateDoc, deleteDoc, 
+        signInAnonymously, onAuthStateChanged 
+    } = window.TrucoDB;
+
+    // Configuración de Administrador por defecto
     const ADMIN_EMAIL = "benitezsamuel930@gmail.com";
     const ADMIN_PASS = "Naruto672";
-    const SEASON_DAYS = 45; // Duración de cada temporada en días
-
-    const INITIAL_ACCOUNTS = [
-      {
-        email: "benitezsamuel930@gmail.com",
-        password: "Naruto672",
-        nombre: "SAMU",
-        role: "ADMIN",
-        estado: "APROBADO"
-      }
+    const SEASON_DAYS = 45;
     ];
 
     const INITIAL_PARTIDAS = [];
