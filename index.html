@@ -2007,7 +2007,7 @@ const canEnvido = gs.envidoState === 'AVAILABLE' && !yoYaJugueEnMano;
                     showMatchResultModal({
                         won: true,
                         title: '¡VICTORIA POR ABANDONO!',
-                        desc: 'Tu rival ha abandonado la partida. Ganaste los puntos (+1 PT + Ventaja) para Truco LEAGUE.'
+                        desc: 'Tu rival ha abandonado la partida. Ganaste los puntos para Truco LEAGUE.'
                     });
                 } else {
                     showMatchResultModal({
@@ -2021,28 +2021,73 @@ const canEnvido = gs.envidoState === 'AVAILABLE' && !yoYaJugueEnMano;
                     showMatchResultModal({
                         won: true,
                         title: '¡VICTORIA POR INACTIVIDAD!',
-                        desc: 'Tu rival no respondió a tiempo. Ganaste la partida (+1 PT + Ventaja).'
+                        desc: 'Tu rival superó el tiempo máximo de inactividad.'
                     });
                 } else {
                     showMatchResultModal({
                         won: false,
                         title: 'DERROTA POR INACTIVIDAD',
-                        desc: 'Transcurrió el tiempo de espera por inactividad.'
+                        desc: 'Se agotó tu tiempo de respuesta.'
                     });
                 }
             } else {
-                showMatchResultModal({
-                    won: isWinner,
-                    title: isWinner ? '¡VICTORIA!' : 'DERROTA',
-                    desc: isWinner ? '¡Felicitaciones! Has ganado la partida.' : 'Buen intento en esta mesa.'
-                });
+                if (isWinner) {
+                    showMatchResultModal({
+                        won: true,
+                        title: '¡VICTORIA!',
+                        desc: 'Has alcanzado el límite de puntos y ganado la partida.'
+                    });
+                } else {
+                    showMatchResultModal({
+                        won: false,
+                        title: 'DERROTA',
+                        desc: 'Tu rival ha alcanzado el límite de puntos.'
+                    });
+                }
             }
+       } // <- LÍNEA 2040 (Cierre de handleMatchFinishedState)
+
+        // FUNCIONES AUXILIARES DE PANTALLA Y RESULTADOS
+        function showMatchResultModal({ won, title, desc }) {
+            const modal = document.getElementById('modal-match-result');
+            const iconContainer = document.getElementById('result-icon-container');
+            const icon = document.getElementById('result-icon');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            titleEl.textContent = title;
+            descEl.textContent = desc;
+
+            if (won) {
+                iconContainer.className = "w-16 h-16 rounded-2xl bg-gold/20 border-2 border-gold text-gold mx-auto flex items-center justify-center text-3xl shadow-bar-gold";
+                icon.className = "fa-solid fa-trophy";
+            } else {
+                iconContainer.className = "w-16 h-16 rounded-2xl bg-red-950/80 border-2 border-red-500 text-red-400 mx-auto flex items-center justify-center text-3xl shadow-lg";
+                icon.className = "fa-solid fa-skull";
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function exitGameToLobby() {
+            clearAfkTimers();
+            document.getElementById('modal-match-result').classList.add('hidden');
+            if (activeRoomId && roomUnsubscribe) {
+                roomUnsubscribe();
+                roomUnsubscribe = null;
+            }
+            activeRoomId = null;
+            currentRoomState = null;
+            matchFinishedHandled = false;
+            showScreen('screen-lobby');
+            loadLeaderboard();
         }
 
         // REGISTRO DE DATOS Y SINCRONIZACIÓN COMPLETA CON TRUCO LEAGUE Y H2H
         async function recordMatchToTrucoLeague({ p1Name, p2Name, winnerName, ptsWinner = 15, ptsLoser = 0, reason = 'NORMAL' }) {
             try {
                 const todayIso = new Date().toISOString().split('T')[0];
+                // ... resto del código ...
                 const ventaja = Math.max(0, ptsWinner - ptsLoser);
                 const loserName = winnerName === p1Name ? p2Name : p1Name;
 
