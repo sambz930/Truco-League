@@ -1442,18 +1442,17 @@ const EXTERNAL_LINK_URL = "https://e118c040.truco-league.pages.dev";
                 </div>
 
                 {/* BOTÓN PERSONALIZABLE */}
-                <div className="pt-2 text-center">
-                  <a
-                    href={EXTERNAL_LINK_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-2xl shadow-xl border border-emerald-400/30 transition-all active:scale-95 gap-2 group"
-                  >
-                    <span>{EXTERNAL_LINK_LABEL}</span>
-                    <IconExternalLink />
-                  </a>
-                </div>
-              </div>
+               <div className="pt-2 text-center">
+  <a
+    href={`${EXTERNAL_LINK_URL}/?user=${encodeURIComponent(usuarioActual?.nombre || usuarioActual?.username || '')}&uid=${encodeURIComponent(usuarioActual?.id || '')}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-2xl shadow-xl border border-emerald-400/30 transition-all active:scale-95 gap-2 group"
+  >
+    <span>{EXTERNAL_LINK_LABEL}</span>
+    <IconExternalLink />
+  </a>
+</div>
             )}
 
             {/* SECCIÓN CARGAR / JUGAR */}
