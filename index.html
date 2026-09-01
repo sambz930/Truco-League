@@ -1709,7 +1709,7 @@
             document.getElementById('modal-confirm-mazo').classList.add('hidden');
         }
 
-        async function confirmIrseAlMazo() {
+       async function confirmIrseAlMazo() {
             closeMazoModal();
             if (isActionPending || !activeRoomId || !currentRoomState || currentRoomState.status !== 'PLAYING') return;
             const gs = currentRoomState.gameState;
@@ -1732,12 +1732,42 @@
                     gs.envidoState = 'DECLINED';
                 }
 
-                await resolveHandWinner(opId, gs);
+                // --- REGLA CORREGIDA ---
+                // Si el jugador que se va al mazo es el MANO de la ronda y NO ha tirado NINGUNA carta a la mesa:
+                const isMano = (gs.manoStarter === myId);
+                const cardsPlayedByMe = gs.played?.[myId]?.length || 0;
+
+                if (isMano && cardsPlayedByMe === 0) {
+                    // Otorga 2 puntos al rival (+1 del juego y +1 por la oportunidad perdida de cantar envido)
+                    if (opId === p1Id) {
+                        gs.p1Score += 2;
+                    } else {
+                        gs.p2Score += 2;
+                    }
+                    
+                    // Verificación si con estos 2 puntos se alcanza la puntuación máxima
+                    if (gs.p1Score >= currentRoomState.maxPoints || gs.p2Score >= currentRoomState.maxPoints) {
+                        const winnerId = gs.p1Score >= currentRoomState.maxPoints ? p1Id : p2Id;
+                        await resolveHandWinner(winnerId, gs);
+                        return;
+                    }
+
+                    // Pasar a la siguiente mano normalmente
+                    const nextManoStarter = gs.manoStarter === p1Id ? p2Id : p1Id;
+                    const newRoundGS = createNewRoundState(p1Id, p2Id, nextManoStarter, {
+                        p1Score: gs.p1Score,
+                        p2Score: gs.p2Score
+                    });
+                    await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": newRoundGS });
+                } else {
+                    // Comportamiento regular si ya tiró cartas o no era la mano
+                    await resolveHandWinner(opId, gs);
+                }
             } finally {
                 setTimeout(() => { isActionPending = false; }, 300);
             }
         }
-
+        
         // MANEJO DE CANTOS
         async function cantAction(type) {
             if (isActionPending || !activeRoomId || !currentRoomState || currentRoomState.status !== 'PLAYING') return;
