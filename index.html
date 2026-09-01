@@ -582,26 +582,23 @@
 
     <!-- FIREBASE & GAME LOGIC SCRIPT -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, 
-            deleteDoc, onSnapshot 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { 
+    getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, 
+    deleteDoc, onSnapshot 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyC_mFMEf8Ea2KYbtVe7iCrdgATftQtl8rE",
-  authDomain: "truco-league-cf286.firebaseapp.com",
-  projectId: "truco-league-cf286",
-  storageBucket: "truco-league-cf286.firebasestorage.app",
-  messagingSenderId: "1073966718355",
-  appId: "1:1073966718355:web:1d343f97e28edb322fdc66"
+    apiKey: "AIzaSyC_mFMEf8Ea2KYbtVe7iCrdgATftQtl8rE",
+    authDomain: "truco-league-cf286.firebaseapp.com",
+    projectId: "truco-league-cf286",
+    storageBucket: "truco-league-cf286.firebasestorage.app",
+    messagingSenderId: "1073966718355",
+    appId: "1:1073966718355:web:1d343f97e28edb322fdc66"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-        const db = getFirestore(app);
+const db = getFirestore(app);
 
         // Rutas Oficiales Firestore Truco LEAGUE
         const PLAYERS_COL = "artifacts/truco-league-app/public/data/jugadores";
