@@ -854,7 +854,7 @@
                         id: 'admin_samu_id',
                         usuario: 'samu',
                         nombre: 'SAMU (Admin)',
-                        puntos: 9999,
+                        puntos: 5,
                         rol: 'admin',
                         esAdmin: true,
                         dailyMatches: 0,
@@ -1330,12 +1330,21 @@
             document.getElementById('game-hand-status').textContent = `Mano de: ${gs.manoStarter === myId ? 'Tú' : 'Rival'}`;
 
             // Turn Indicators
-            const isMyTurnToPlay = gs.turn === myId && !gs.pendingCall && gs.envidoState !== 'DECLARING_POINTS';
-            const isMyTurnToRespond = gs.pendingCall && gs.pendingCall.target === myId;
-            const isMyTurnToDeclareEnvido = gs.envidoState === 'DECLARING_POINTS' && 
-                ((gs.envidoPointsStage === 'MANO' && gs.manoStarter === myId) || 
-                 (gs.envidoPointsStage === 'PIE' && gs.manoStarter !== myId));
+// Turn Indicators
+const isMyTurnToPlay = gs.turn === myId && !gs.pendingCall && gs.envidoState !== 'DECLARING_POINTS';
+const isMyTurnToRespond = gs.pendingCall && gs.pendingCall.target === myId;
+const isMyTurnToDeclareEnvido = gs.envidoState === 'DECLARING_POINTS' && 
+    ((gs.envidoPointsStage === 'MANO' && gs.manoStarter === myId) ||
+     (gs.envidoPointsStage === 'PIE' && gs.manoStarter !== myId));
 
+// REGLA CLAVE: El envido NUNCA se cierra automáticamente mientras un jugador NO haya jugado su 1ra carta.
+// Solo se resuelve/cierra si AMBOS jugadores ya jugaron al menos 1 carta sin haber cantado.
+const myPlayedCount = (gs.played && gs.played[myId]) ? gs.played[myId].length : 0;
+const opPlayedCount = (gs.played && gs.played[opId]) ? gs.played[opId].length : 0;
+
+if (gs.envidoState === 'AVAILABLE' && myPlayedCount >= 1 && opPlayedCount >= 1) {
+    gs.envidoState = 'RESOLVED';
+}
             const isMyTurnOverall = isMyTurnToPlay || isMyTurnToRespond || isMyTurnToDeclareEnvido;
 
             document.getElementById('game-me-turn').classList.toggle('hidden', !isMyTurnOverall);
