@@ -2142,23 +2142,62 @@
         }
 
         // REGISTRO DE DATOS Y SINCRONIZACIÓN COMPLETA CON TRUCO LEAGUE
-        async function recordMatchToTrucoLeague({ p1Name, p2Name, winnerName, ptsWinner = 15, ptsLoser = 0, reason = 'NORMAL' }) {
-            try {
-                const todayIso = new Date().toISOString().split('T')[0];
-                const ventaja = Math.max(0, ptsWinner - ptsLoser);
-                const loserName = winnerName === p1Name ? p2Name : p1Name;
+async function recordMatchToTrucoLeague({ p1Name, p2Name, winnerName, ptsWinner = 15, ptsLoser = 0, reason = 'NORMAL' }) {
+    try {
+        const todayIso = new Date().toISOString().split('T')[0];
+        const ventaja = Math.max(0, ptsWinner - ptsLoser);
+        const loserName = winnerName === p1Name ? p2Name : p1Name;
 
-                // 1. Registrar la partida en el historial oficial MATCHES_COL
-                const matchRef = doc(collection(db, MATCHES_COL));
-                await setDoc(matchRef, {
-                    fecha: todayIso,
-                    ganador: winnerName,
-                    perdedor: loserName,
-                    puntosGanador: ptsWinner,
-                    puntosPerdedor: ptsLoser,
-                    ventaja: ventaja,
-                    motivo: reason,
-                    timestamp: new Date().toISOString()
+        // 1. Registrar la partida en el historial
+        const matchRef = doc(collection(db, MATCHES_COL));
+        await setDoc(matchRef, {
+            fecha: todayIso,
+            ganador: winnerName,
+            perdedor: loserName,
+            puntosGanador: ptsWinner,
+            puntosPerdedor: ptsLoser,
+            ventaja: ventaja,
+            motivo: reason,
+            timestamp: new Date().toISOString()
+        });
+
+        // 2. Sincronizar estadísticas en la colección de jugadores
+        const snap = await getDocs(collection(db, PLAYERS_COL));
+        snap.forEach(async (docSnap) => {
+            const pData = docSnap.data();
+            const name = pData.nombre || pData.usuario;
+            
+            if (name === winnerName) {
+                const curPts = pData.puntos || 0;
+                const curPG = pData.pg ?? pData.ganadas ?? pData.partidasGanadas ?? 0;
+                const curVentaja = pData.ventaja ?? pData.puntosVentaja ?? 0;
+
+                // CORRECCIÓN: Se agrega la ventaja acumulada y se sincronizan los nombres de campos
+                await updateDoc(doc(db, PLAYERS_COL, docSnap.id), {
+                    puntos: curPts + 1,
+                    pg: curPG + 1,
+                    partidasGanadas: curPG + 1,
+                    ventaja: curVentaja + ventaja,
+                    puntosVentaja: curVentaja + ventaja
+                });
+                
+                if (docSnap.id === userData?.id) {
+                    userData.puntos = curPts + 1;
+                }
+            } else if (name === loserName) {
+                const curPP = pData.pp ?? pData.perdidas ?? pData.partidasPerdidas ?? 0;
+                await updateDoc(doc(db, PLAYERS_COL, docSnap.id), {
+                    pp: curPP + 1,
+                    partidasPerdidas: curPP + 1
+                });
+            }
+        });
+
+        setupUserUI();
+    } catch (err) {
+        console.error("Error registrando partida en Truco LEAGUE:", err);
+    }
+}
                 });
 
                 // 2. Sincronizar estadísticas de los jugadores en la Tabla Oficial PLAYERS_COL
