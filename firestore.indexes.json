@@ -1,0 +1,28 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "partidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "seasonNumber", "order": "ASCENDING"},
+        {"fieldPath": "estado", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "partidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "seasonNumber", "order": "ASCENDING"},
+        {"fieldPath": "creatorUid", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "timestamp", "order": "DESCENDING"}
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
