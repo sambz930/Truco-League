@@ -1,4 +1,4 @@
-# Truco League — versión competitiva corregida
+# Truco League — versión competitiva corregida 1
 
 ## Cambios de esta versión
 
