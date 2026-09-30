@@ -1,0 +1,3881 @@
+<!-- Chosen Palette: Warm Wood & Metallic Gold (Bar/Pub Truco Theme) -->
+<!-- Application Structure Plan: Single-page responsive interactive web app for Truco LEAGUE 1v1. Updated with immediate match finish upon reach limit, 40s/20s inactivity AFK check, admin daily match resets, admin leaderboard reset, and full Truco League stats & H2H synchronization. -->
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-[#0f0804]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EL ANCHO — Truco LEAGUE 1v1</title>
+    <meta name="theme-color" content="#140b06">
+    <meta name="description" content="EL ANCHO — Truco argentino de bar, partidas 1v1 y apuestas de puntos de tabla.">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts: Cinzel, Orbitron & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;600;700;800;900&family=Orbitron:wght@600;800;900&family=Special+Elite&display=swap" rel="stylesheet">
+
+    <!-- Tailwind Custom Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        bar: ['Cinzel', 'serif'],
+                        blitz: ['Orbitron', 'sans-serif'],
+                    },
+                    colors: {
+                        wood: {
+                            950: '#0f0804',
+                            900: '#1a0d07',
+                            800: '#2b170c',
+                            700: '#3d2213',
+                            600: '#54301b',
+                            500: '#734428',
+                        },
+                        gold: {
+                            light: '#ffe082',
+                            DEFAULT: '#d4af37',
+                            dark: '#aa7c11',
+                            amber: '#f59e0b'
+                        },
+                        barFelt: '#123825'
+                    },
+                    boxShadow: {
+                        'bar-gold': '0 0 15px rgba(212, 175, 55, 0.35)',
+                        'wood-depth': 'inset 0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)',
+                        'card-shadow': '0 8px 18px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+:root{
+  --ink:#24170e;
+  --wood-950:#100905;
+  --wood-900:#1c0f08;
+  --wood-850:#24140b;
+  --wood-800:#2e1a0f;
+  --wood-700:#432613;
+  --wood-600:#5f3820;
+  --brass:#d0aa45;
+  --brass-light:#f2d788;
+  --brass-dark:#8d6719;
+  --felt:#17422f;
+  --felt-deep:#092418;
+  --paper:#f4ead5;
+  --paper-2:#ead9b9;
+  --red:#8f241a;
+  --green:#236a49;
+}
+
+html,body{
+  min-height:100%;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(122,79,39,.18), transparent 38%),
+    linear-gradient(180deg,#140b06 0%,#0b0704 100%);
+}
+
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  color:#f7efd8;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:manipulation;
+  overflow-x:hidden;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+
+button,input{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed}
+
+.font-bar{font-family:'Cinzel',serif}
+.font-sign{font-family:'Special Elite','Courier New',monospace}
+.font-blitz{font-family:'Orbitron',sans-serif}
+
+.bar-app-shell{
+  position:relative;
+  isolation:isolate;
+  width:100%;
+  max-width:760px;
+  min-height:100vh;
+  margin:0 auto;
+  overflow:hidden;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.28),transparent 12%,transparent 88%,rgba(0,0,0,.28)),
+    radial-gradient(circle at 50% -10%,rgba(212,175,55,.11),transparent 32%),
+    linear-gradient(180deg,#26150b 0%,#170c07 100%);
+  border-left:1px solid rgba(239,203,119,.18);
+  border-right:1px solid rgba(239,203,119,.18);
+  box-shadow:0 0 60px rgba(0,0,0,.75);
+}
+
+.bar-app-shell::before,
+.bar-app-shell::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:-1;
+}
+
+.bar-app-shell::before{
+  opacity:.28;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 22px,rgba(255,255,255,.028) 23px,transparent 24px 46px),
+    repeating-linear-gradient(0deg,transparent 0 12px,rgba(0,0,0,.12) 13px,transparent 15px);
+  mix-blend-mode:soft-light;
+}
+
+.bar-app-shell::after{
+  background:
+    radial-gradient(circle at 12% 8%,rgba(255,231,163,.1),transparent 11%),
+    radial-gradient(circle at 88% 18%,rgba(255,231,163,.06),transparent 15%);
+}
+
+.app-chrome{
+  background:linear-gradient(180deg,rgba(21,12,7,.98),rgba(18,9,5,.94));
+  border-bottom:1px solid rgba(208,170,69,.32);
+  box-shadow:0 8px 24px rgba(0,0,0,.45);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+
+.brand-lockup{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+}
+
+.brand-mark{
+  width:2.35rem;
+  height:2.35rem;
+  border-radius:.7rem;
+  display:grid;
+  place-items:center;
+  color:var(--brass-light);
+  background:
+    linear-gradient(145deg,#5a361c,#24130a 72%);
+  border:1px solid rgba(242,215,136,.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 6px 16px rgba(0,0,0,.45);
+}
+
+.brand-title{
+  letter-spacing:.11em;
+  font-weight:900;
+  line-height:1;
+  font-size:1.08rem;
+  background:linear-gradient(180deg,#fff0b1,#d4af37 54%,#8f6515);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.8));
+}
+
+.brass-rule{
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(242,215,136,.6),transparent);
+}
+
+.old-panel{
+  position:relative;
+  background:
+    linear-gradient(145deg,rgba(73,40,21,.95),rgba(27,14,8,.98));
+  border:1px solid rgba(208,170,69,.22);
+  border-radius:1.1rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(0,0,0,.5),
+    0 10px 28px rgba(0,0,0,.46);
+  overflow:hidden;
+}
+
+.old-panel::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 15% 15%,rgba(255,230,163,.08),transparent 22%),
+    repeating-linear-gradient(0deg,transparent 0 10px,rgba(255,255,255,.018) 11px,transparent 12px);
+}
+
+.old-panel > *{position:relative}
+
+.wood-button{
+  transition:
+    transform .16s cubic-bezier(.22,.8,.3,1),
+    filter .16s ease,
+    box-shadow .16s ease,
+    background .16s ease;
+  will-change:transform;
+}
+
+.wood-button:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.07)}
+.wood-button:active:not(:disabled){transform:translateY(1px) scale(.992)}
+
+.btn-brass{
+  color:#24170e;
+  background:
+    linear-gradient(180deg,#f0d57c 0%,#c69e32 52%,#896310 100%);
+  border:1px solid #f4dd98;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.42),
+    0 7px 16px rgba(0,0,0,.42);
+  text-shadow:0 1px 0 rgba(255,255,255,.28);
+}
+
+.btn-brass:hover:not(:disabled){
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.5),
+    0 9px 20px rgba(0,0,0,.48),
+    0 0 18px rgba(208,170,69,.18);
+}
+
+.btn-brass:disabled{opacity:.45;filter:saturate(.5)}
+
+.btn-wood{
+  color:#f6ead0;
+  background:linear-gradient(180deg,#47301d,#2b180e);
+  border:1px solid rgba(208,170,69,.18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 5px 12px rgba(0,0,0,.28);
+}
+
+.input-tavern{
+  color:#f8efdb;
+  background:rgba(11,6,4,.72);
+  border:1px solid rgba(208,170,69,.24);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.35);
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+
+.input-tavern:focus{
+  outline:none;
+  border-color:rgba(242,215,136,.72);
+  background:rgba(11,6,4,.88);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.3),0 0 0 3px rgba(208,170,69,.08);
+}
+
+.signboard{
+  position:relative;
+  text-align:center;
+  padding:1.15rem 1rem 1rem;
+  border-radius:1.15rem;
+  background:
+    linear-gradient(180deg,rgba(84,48,26,.98),rgba(38,20,11,.98));
+  border:1px solid rgba(244,221,152,.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    inset 0 -6px 14px rgba(0,0,0,.22),
+    0 10px 28px rgba(0,0,0,.46);
+}
+
+.signboard .nails{
+  position:absolute;
+  top:.6rem;
+  left:.7rem;
+  right:.7rem;
+  display:flex;
+  justify-content:space-between;
+  opacity:.42;
+}
+
+.nail{
+  width:.45rem;
+  height:.45rem;
+  border-radius:999px;
+  background:#bca15f;
+  box-shadow:inset 0 1px 1px #fff,0 1px 3px #000;
+}
+
+.sign-title{
+  font-family:'Special Elite','Courier New',monospace;
+  font-size:2rem;
+  letter-spacing:.14em;
+  color:#f5da8b;
+  text-shadow:0 2px 0 #4d2b10,0 4px 7px rgba(0,0,0,.8);
+}
+
+.sign-sub{
+  margin-top:.25rem;
+  font-family:'Cinzel',serif;
+  font-size:.58rem;
+  letter-spacing:.24em;
+  text-transform:uppercase;
+  color:rgba(244,221,152,.72);
+}
+
+.bar-ribbon{
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  padding:.28rem .62rem;
+  border-radius:999px;
+  border:1px solid rgba(208,170,69,.28);
+  background:rgba(13,7,4,.56);
+  color:rgba(245,218,139,.9);
+  font-size:.58rem;
+  text-transform:uppercase;
+  letter-spacing:.13em;
+  font-family:'Cinzel',serif;
+  font-weight:800;
+}
+
+.status-dot{
+  width:.42rem;height:.42rem;border-radius:50%;
+  background:#75d59a;
+  box-shadow:0 0 10px rgba(117,213,154,.7);
+}
+
+.felt-table{
+  position:relative;
+  background:
+    radial-gradient(circle at 50% 45%,rgba(49,115,76,.52),transparent 44%),
+    repeating-linear-gradient(22deg,rgba(255,255,255,.015) 0 2px,transparent 2px 6px),
+    radial-gradient(circle at center,#195038 0%,#113625 60%,#081b13 100%);
+  border:4px solid #432613;
+  border-radius:1.6rem;
+  box-shadow:
+    inset 0 0 0 2px rgba(208,170,69,.11),
+    inset 0 0 40px rgba(0,0,0,.72),
+    0 14px 34px rgba(0,0,0,.55);
+  overflow:hidden;
+}
+
+.felt-table::before{
+  content:"";
+  position:absolute;
+  inset:-30%;
+  background:conic-gradient(from 210deg,transparent 0 72%,rgba(255,238,182,.06),transparent 83%);
+  animation:feltSweep 11s linear infinite;
+  pointer-events:none;
+}
+
+.felt-ornament{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:7rem;height:7rem;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  color:rgba(239,214,145,.18);
+  border:1px solid rgba(239,214,145,.12);
+  box-shadow:inset 0 0 0 8px rgba(0,0,0,.05);
+  pointer-events:none;
+}
+
+.felt-ornament span{
+  font-family:'Special Elite','Courier New',monospace;
+  font-size:.72rem;
+  letter-spacing:.18em;
+}
+
+.seat-name{
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  max-width:12rem;
+  padding:.35rem .55rem;
+  border-radius:.65rem;
+  background:rgba(7,4,2,.34);
+  border:1px solid rgba(242,215,136,.09);
+}
+
+.turn-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.3rem;
+  padding:.18rem .4rem;
+  border-radius:999px;
+  color:#27170b;
+  background:linear-gradient(180deg,#f2d788,#bc8f22);
+  font-family:'Cinzel',serif;
+  font-weight:900;
+  font-size:.5rem;
+  letter-spacing:.08em;
+  box-shadow:0 0 12px rgba(208,170,69,.3);
+}
+
+.score-number{
+  font-family:'Orbitron',sans-serif;
+  font-weight:900;
+  font-size:1.7rem;
+  line-height:1;
+  text-shadow:0 3px 0 rgba(0,0,0,.28);
+}
+
+.score-op{color:#e07a63}
+.score-me{color:#76d59e}
+
+.match-meta{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:.35rem;
+  font-family:'Cinzel',serif;
+  font-size:.56rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:rgba(245,218,139,.78);
+}
+
+.meta-chip{
+  padding:.28rem .45rem;
+  border-radius:.5rem;
+  background:rgba(13,7,4,.42);
+  border:1px solid rgba(208,170,69,.18);
+}
+
+.wager-chip{
+  color:#f2d788;
+  border-color:rgba(208,170,69,.34);
+}
+
+.rank-row{
+  position:relative;
+  display:grid;
+  grid-template-columns:2.6rem minmax(0,1fr) 4.5rem 4.6rem;
+  gap:.45rem;
+  align-items:center;
+  padding:.55rem .6rem;
+  border-radius:.8rem;
+  border:1px solid rgba(208,170,69,.15);
+  background:
+    linear-gradient(180deg,rgba(14,8,5,.92),rgba(21,11,6,.9));
+  transition:transform .16s ease,border-color .16s ease,background .16s ease;
+}
+
+.rank-row:hover{transform:translateX(2px);border-color:rgba(208,170,69,.28)}
+.rank-row.me{
+  background:
+    linear-gradient(90deg,rgba(208,170,69,.15),rgba(55,31,15,.88));
+  border-color:rgba(208,170,69,.45);
+  box-shadow:inset 3px 0 0 var(--brass);
+}
+
+.rank-pos{
+  font-family:'Cinzel',serif;
+  font-weight:900;
+  color:rgba(244,221,152,.72);
+  text-align:center;
+}
+
+.rank-name{
+  min-width:0;
+  font-weight:800;
+  color:#f6ead4;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.rank-pts{
+  font-family:'Orbitron',sans-serif;
+  font-weight:900;
+  color:#f2d788;
+  text-align:center;
+}
+
+.rank-record{
+  text-align:center;
+  color:rgba(245,229,198,.62);
+  font-size:.62rem;
+}
+
+.room-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.7rem;
+  padding:.8rem;
+  border-radius:.95rem;
+  background:
+    linear-gradient(145deg,rgba(68,37,19,.85),rgba(29,15,8,.95));
+  border:1px solid rgba(208,170,69,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 7px 18px rgba(0,0,0,.24);
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+  animation:roomRise .38s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.room-card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(208,170,69,.33);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.32);
+}
+
+.room-token{
+  width:2.35rem;height:2.35rem;
+  border-radius:.72rem;
+  display:grid;place-items:center;
+  flex:0 0 auto;
+  color:#f2d788;
+  border:1px solid rgba(208,170,69,.26);
+  background:linear-gradient(145deg,#553118,#231209);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.wager-selector{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:.5rem;
+}
+
+.wager-option{
+  position:relative;
+  min-width:0;
+  padding:.62rem .35rem;
+  border-radius:.75rem;
+  border:1px solid rgba(208,170,69,.13);
+  background:rgba(10,6,3,.64);
+  color:rgba(246,232,208,.62);
+  transition:transform .16s ease,border-color .16s ease,background .16s ease,color .16s ease;
+}
+
+.wager-option:hover:not(:disabled){transform:translateY(-1px);border-color:rgba(208,170,69,.34);color:#f4da8f}
+.wager-option.active{
+  color:#24170e;
+  background:linear-gradient(180deg,#f2d788,#c2972e);
+  border-color:#f4dc95;
+  box-shadow:0 0 16px rgba(208,170,69,.15);
+}
+.wager-option:disabled{opacity:.3}
+
+.wager-number{
+  display:block;
+  font-family:'Orbitron',sans-serif;
+  font-weight:900;
+  font-size:1.05rem;
+}
+
+.wager-caption{
+  display:block;
+  margin-top:.08rem;
+  font-size:.5rem;
+  font-family:'Cinzel',serif;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+
+.card-zone{
+  perspective:1200px;
+  contain:layout paint;
+}
+
+.card-truco,.played-card{
+  position:relative;
+  overflow:hidden;
+  border-radius:1rem;
+  color:#24180f;
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.92),rgba(245,236,214,.98)),
+    var(--paper);
+  border:3px solid #203b2b !important;
+  box-shadow:
+    0 12px 20px rgba(0,0,0,.42),
+    0 2px 0 rgba(255,255,255,.7) inset,
+    0 -2px 0 rgba(65,33,14,.18) inset;
+  transition:transform .2s cubic-bezier(.22,.8,.25,1),filter .18s ease,opacity .18s ease,box-shadow .2s ease;
+  transform-style:preserve-3d;
+  animation:cardDeal .45s cubic-bezier(.16,.9,.2,1) both;
+}
+
+.card-truco{
+  width:clamp(74px,16vw,98px);
+  height:clamp(112px,23vw,142px);
+}
+
+.played-card{
+  width:clamp(68px,15vw,86px);
+  height:clamp(102px,21vw,126px);
+  animation:cardPlay .32s cubic-bezier(.16,.9,.2,1) both;
+}
+
+.card-truco::before,.played-card::before{
+  content:"";
+  position:absolute;
+  inset:5px;
+  border:1px solid rgba(122,82,29,.28);
+  border-radius:.72rem;
+  pointer-events:none;
+}
+
+.card-truco::after,.played-card::after{
+  content:"";
+  position:absolute;
+  inset:8px;
+  border:1px dashed rgba(122,82,29,.11);
+  border-radius:.6rem;
+  pointer-events:none;
+}
+
+.card-truco:hover:not(.disabled-card){
+  transform:translateY(-9px) rotateZ(-1deg);
+  box-shadow:
+    0 20px 28px rgba(0,0,0,.48),
+    0 0 0 2px rgba(242,215,136,.12);
+}
+
+.card-truco:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(242,215,136,.5),0 18px 24px rgba(0,0,0,.48);
+}
+
+.disabled-card{
+  opacity:.48;
+  filter:saturate(.55) brightness(.82);
+}
+
+.card-corner{
+  position:absolute;
+  top:.42rem;
+  left:.48rem;
+  right:.48rem;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  z-index:2;
+}
+
+.card-corner.bottom{
+  top:auto;
+  bottom:.42rem;
+  transform:rotate(180deg);
+}
+
+.card-value{
+  font-family:'Cinzel',serif;
+  font-weight:900;
+  font-size:1rem;
+  line-height:1;
+}
+
+.card-value.small{
+  font-size:.56rem;
+  letter-spacing:.02em;
+}
+
+.card-suit{
+  display:inline-flex;
+  width:1.1rem;height:1.25rem;
+  color:currentColor;
+}
+
+.card-center{
+  position:absolute;
+  inset:2rem .8rem 2.1rem;
+  display:grid;
+  place-items:center;
+  z-index:1;
+}
+
+.pip-grid{
+  position:relative;
+  width:100%;
+  height:100%;
+  max-width:4.9rem;
+  max-height:5.6rem;
+}
+
+.pip{
+  position:absolute;
+  width:1.05rem;
+  height:1.35rem;
+  transform:translate(-50%,-50%);
+  color:currentColor;
+}
+
+.figure-card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:.2rem;
+  width:84%;
+  height:86%;
+  border-radius:.72rem;
+  border:1px solid rgba(102,55,20,.18);
+  background:
+    linear-gradient(180deg,rgba(255,250,237,.68),rgba(222,197,155,.23));
+  box-shadow:inset 0 0 0 3px rgba(148,102,35,.07);
+}
+
+.figure-card .figure-letter{
+  font-family:'Cinzel',serif;
+  font-weight:900;
+  font-size:1.65rem;
+  line-height:1;
+  letter-spacing:.06em;
+}
+
+.figure-card .figure-name{
+  font-family:'Special Elite','Courier New',monospace;
+  font-size:.42rem;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  opacity:.78;
+}
+
+.card-back{
+  position:relative;
+  width:2.95rem;
+  height:4.35rem;
+  border-radius:.62rem;
+  border:2px solid #c8a94d;
+  background:
+    linear-gradient(45deg,transparent 44%,rgba(246,222,135,.18) 45%,transparent 46%),
+    linear-gradient(-45deg,transparent 44%,rgba(246,222,135,.12) 45%,transparent 46%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 2px,transparent 2px 6px),
+    linear-gradient(145deg,#6d2c1d,#2a100c 72%);
+  background-size:auto,auto,6px 6px,auto;
+  box-shadow:0 6px 12px rgba(0,0,0,.28);
+  display:grid;place-items:center;
+  transform:rotate(-1.5deg);
+  animation:cardBackIn .34s ease both;
+}
+
+.card-back::before{
+  content:"";
+  width:1.95rem;height:3.3rem;
+  border-radius:.42rem;
+  border:1px solid rgba(245,222,135,.38);
+  box-shadow:inset 0 0 0 3px rgba(0,0,0,.14);
+}
+
+.card-back::after{
+  content:"EA";
+  position:absolute;
+  font-family:'Cinzel',serif;
+  font-weight:900;
+  font-size:.56rem;
+  color:#f4d982;
+  letter-spacing:.08em;
+}
+
+.last-canto{
+  animation:toastPop .4s cubic-bezier(.17,.84,.29,1) both;
+}
+
+.blitz-toast{
+  transform-origin:center;
+  animation:toastPop .36s cubic-bezier(.17,.84,.29,1) both;
+}
+
+.mazo-link{
+  background:rgba(11,6,4,.62);
+  border:1px solid rgba(146,37,26,.46);
+  color:#e07a63;
+}
+
+.modal-backdrop{
+  background:rgba(10,5,3,.84);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+.modal-card{
+  width:min(100%,30rem);
+  max-height:92vh;
+  overflow:auto;
+  border-radius:1.25rem;
+  background:linear-gradient(145deg,#4a2a16,#1f1008);
+  border:1px solid rgba(242,215,136,.3);
+  box-shadow:0 24px 60px rgba(0,0,0,.64),inset 0 1px 0 rgba(255,255,255,.08);
+  animation:modalIn .34s cubic-bezier(.17,.84,.29,1) both;
+}
+
+.kicker{
+  font-family:'Cinzel',serif;
+  text-transform:uppercase;
+  letter-spacing:.15em;
+  font-size:.55rem;
+  color:rgba(242,215,136,.62);
+}
+
+.empty-state{
+  min-height:12rem;
+  display:grid;
+  place-items:center;
+  color:rgba(224,193,143,.5);
+  text-align:center;
+}
+
+.footer-note{
+  color:rgba(224,193,143,.42);
+  font-size:.52rem;
+  text-transform:uppercase;
+  letter-spacing:.11em;
+  font-family:'Cinzel',serif;
+}
+
+.section-title{
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+  color:#f0d27d;
+  font-family:'Cinzel',serif;
+  font-size:.63rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  font-weight:900;
+}
+
+.icon-disc{
+  width:2rem;height:2rem;
+  border-radius:.65rem;
+  display:grid;place-items:center;
+  color:#f0d27d;
+  background:linear-gradient(145deg,#523019,#251309);
+  border:1px solid rgba(208,170,69,.24);
+}
+
+.hr-bar{border-color:rgba(208,170,69,.12)}
+
+.scroll-tavern::-webkit-scrollbar{width:6px}
+.scroll-tavern::-webkit-scrollbar-track{background:rgba(13,7,4,.52)}
+.scroll-tavern::-webkit-scrollbar-thumb{background:#5a3920;border-radius:999px}
+.scroll-tavern::-webkit-scrollbar-thumb:hover{background:#c59b33}
+
+@keyframes cardDeal{
+  from{opacity:0;transform:translateY(24px) rotateX(-18deg) rotateZ(var(--deal-rot,-1deg))}
+  to{opacity:1;transform:translateY(0) rotateX(0) rotateZ(var(--deal-rot,-1deg))}
+}
+@keyframes cardPlay{
+  from{opacity:0;transform:translateY(-18px) scale(.92) rotateZ(-3deg)}
+  to{opacity:1;transform:translateY(0) scale(1) rotateZ(0)}
+}
+@keyframes cardBackIn{
+  from{opacity:0;transform:translateY(-8px) rotateZ(-6deg)}
+  to{opacity:1;transform:translateY(0) rotateZ(-1.5deg)}
+}
+@keyframes modalIn{
+  from{opacity:0;transform:translateY(14px) scale(.98)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes toastPop{
+  from{opacity:0;transform:translateY(9px) scale(.96)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes roomRise{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes feltSweep{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+
+@media (max-width:520px){
+  .bar-app-shell{border-left:0;border-right:0}
+  .sign-title{font-size:1.72rem}
+  .felt-table{border-width:3px;border-radius:1.25rem}
+  .rank-row{grid-template-columns:2.1rem minmax(0,1fr) 4rem 4rem}
+  .score-number{font-size:1.45rem}
+  .seat-name{max-width:8.5rem}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:.001ms !important;
+  }
+}
+
+/* Compatibilidad visual para elementos dinámicos existentes */
+.wood-panel{ 
+  position:relative;
+  background:linear-gradient(145deg,rgba(73,40,21,.95),rgba(27,14,8,.98));
+  border:1px solid rgba(208,170,69,.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.5),0 8px 22px rgba(0,0,0,.34);
+}
+.btn-bar-gold{ 
+  color:#24170e;
+  background:linear-gradient(180deg,#f0d57c 0%,#c69e32 52%,#896310 100%);
+  border:1px solid #f4dd98;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.42),0 7px 16px rgba(0,0,0,.42);
+  text-shadow:0 1px 0 rgba(255,255,255,.28);
+}
+.btn-bar-gold:hover:not(:disabled){filter:brightness(1.06)}
+.gold-3d-text{
+  background:linear-gradient(180deg,#fff0b1,#d4af37 54%,#8f6515);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.78));
+}
+.shadow-bar-gold{box-shadow:0 0 18px rgba(208,170,69,.24),inset 0 1px 0 rgba(255,255,255,.08)}
+.card-suit-svg{width:100%;height:100%;display:block;overflow:visible}
+.suit-espada{color:#263e58}
+.suit-basto{color:#27573c}
+.suit-oro{color:#9b7317}
+.suit-copa{color:#8a2d22}
+
+
+#screen-game{min-height:0}
+@media (max-height:760px) and (max-width:520px){
+  #screen-game .felt-table{min-height:350px}
+  #screen-game .old-panel{flex-shrink:0}
+}
+</style>
+</head>
+<body>
+<div class="bar-app-shell min-h-screen flex flex-col">
+
+    <header class="app-chrome sticky top-0 z-40">
+        <div class="px-4 py-3 flex items-center justify-between gap-3">
+            <div class="brand-lockup min-w-0">
+                <div class="brand-mark"><i class="fa-solid fa-hat-cowboy-side"></i></div>
+                <div class="min-w-0">
+                    <div class="brand-title font-bar">EL ANCHO</div>
+                    <div class="text-[8px] uppercase tracking-[.22em] text-amber-100/45 font-bar truncate">Bar • Truco Argentino • Liga en vivo</div>
+                </div>
+            </div>
+
+            <div id="header-user" class="hidden items-center gap-2">
+                <button id="btn-header-admin" onclick="openAdminPanel()" class="hidden wood-button btn-wood px-2.5 py-1.5 rounded-lg text-[10px] font-bold items-center gap-1">
+                    <i class="fa-solid fa-user-shield"></i><span>ADMIN</span>
+                </button>
+                <div class="hidden sm:block text-right">
+                    <div id="user-display-name" class="text-xs font-bold text-amber-50 max-w-[110px] truncate"></div>
+                    <div class="text-[8px] text-amber-100/45 uppercase tracking-widest font-bar">Jugador</div>
+                </div>
+                <button onclick="logout()" class="wood-button w-8 h-8 rounded-lg btn-wood grid place-items-center text-amber-100/65 hover:text-red-300" title="Cerrar sesión">
+                    <i class="fa-solid fa-right-from-bracket text-[11px]"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- LOGIN -->
+    <section id="screen-login" class="flex-1 flex flex-col justify-center px-4 py-6 sm:px-8">
+        <div class="w-full max-w-lg mx-auto space-y-5">
+            <div class="signboard">
+                <div class="nails"><span class="nail"></span><span class="nail"></span></div>
+                <div class="sign-title">EL ANCHO</div>
+                <div class="sign-sub">Truco de bar • Liga oficial</div>
+                <div class="brass-rule my-3"></div>
+                <div class="flex justify-center">
+                    <span class="bar-ribbon"><span class="status-dot"></span> Mesa abierta</span>
+                </div>
+            </div>
+
+            <div class="old-panel p-5 sm:p-6">
+                <div class="text-center mb-5">
+                    <div class="icon-disc mx-auto mb-3"><i class="fa-solid fa-key"></i></div>
+                    <div class="font-bar font-black text-lg text-amber-50">ENTRAR AL SALÓN</div>
+                    <div class="text-[10px] text-amber-100/45 mt-1">Usá las mismas credenciales de Truco LEAGUE.</div>
+                </div>
+
+                <form onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block kicker mb-1.5">Usuario</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-amber-100/35"><i class="fa-solid fa-user"></i></span>
+                            <input type="text" id="login-username" required autocomplete="username" placeholder="Ej.: SAMU" class="input-tavern w-full pl-9 pr-3 py-3 rounded-xl text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block kicker mb-1.5">Contraseña</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-amber-100/35"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" id="login-password" required autocomplete="current-password" placeholder="••••••••" class="input-tavern w-full pl-9 pr-3 py-3 rounded-xl text-sm">
+                        </div>
+                    </div>
+
+                    <div id="login-error" class="hidden rounded-xl border border-red-500/35 bg-red-950/55 text-red-200 px-3 py-2.5 text-xs text-center"></div>
+
+                    <button type="submit" class="wood-button btn-brass w-full rounded-xl py-3.5 font-bar font-black text-xs uppercase tracking-[.12em] flex items-center justify-center gap-2">
+                        ENTRAR AL BAR <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="old-panel p-2.5"><div class="text-gold font-bar font-black text-xs">1v1</div><div class="text-[8px] text-amber-100/35 uppercase tracking-widest">Duelo</div></div>
+                <div class="old-panel p-2.5"><div class="text-gold font-bar font-black text-xs">40</div><div class="text-[8px] text-amber-100/35 uppercase tracking-widest">Cartas</div></div>
+                <div class="old-panel p-2.5"><div class="text-gold font-bar font-black text-xs">LIVE</div><div class="text-[8px] text-amber-100/35 uppercase tracking-widest">Firebase</div></div>
+            </div>
+
+            <div class="footer-note text-center">Baraja española • sin alterar las reglas del truco</div>
+        </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section id="screen-lobby" class="hidden flex-1 flex flex-col px-4 py-4 sm:px-6 overflow-y-auto scroll-tavern">
+        <div class="w-full max-w-2xl mx-auto flex flex-col gap-4">
+
+            <div class="old-panel p-4 sm:p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-12 h-12 rounded-xl grid place-items-center font-bar font-black text-lg text-[#24170e] bg-gradient-to-br from-[#f1d98a] via-[#ccaa44] to-[#80601a] border border-[#f6dfa2] shadow-lg" id="profile-avatar">U</div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span id="lobby-username" class="text-base font-bold text-amber-50 truncate">Cargando...</span>
+                                <span id="admin-badge" class="hidden bar-ribbon !py-1 !px-2">ADMIN</span>
+                            </div>
+                            <div class="text-[9px] text-amber-100/45 uppercase tracking-[.14em] font-bar mt-1">Jugador de Truco LEAGUE</div>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <span class="bar-ribbon"><i class="fa-solid fa-calendar-day text-[8px]"></i> Hoy <strong id="lobby-daily-matches">0 / 5</strong></span>
+                                <span class="bar-ribbon"><i class="fa-solid fa-coins text-[8px]"></i> Disponibles <strong id="lobby-user-pts">--</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sm:text-right">
+                        <div class="kicker">Capital de tabla</div>
+                        <div class="font-blitz font-black text-2xl text-amber-100 mt-1"><span id="lobby-user-pts-secondary">--</span></div>
+                        <div class="text-[8px] text-amber-100/40 uppercase tracking-[.13em]">Puntos para apostar</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#0c0704]/70 border border-amber-100/10">
+                <button id="btn-tab-rooms" onclick="switchLobbyTab('rooms')" class="wood-button rounded-lg py-2.5 bg-amber-100/10 text-amber-100 border border-amber-100/10 text-[10px] font-bar font-black uppercase tracking-wider flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-chair"></i> MESAS
+                </button>
+                <button id="btn-tab-leaderboard" onclick="switchLobbyTab('leaderboard')" class="wood-button rounded-lg py-2.5 text-amber-100/40 text-[10px] font-bar font-black uppercase tracking-wider flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-ranking-star"></i> TABLA
+                </button>
+            </div>
+
+            <div id="lobby-tab-rooms-sec" class="space-y-3">
+                <button onclick="openCreateRoomModal()" class="wood-button btn-brass w-full rounded-xl py-3.5 font-bar font-black text-xs uppercase tracking-[.14em] flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> ABRIR NUEVA MESA
+                </button>
+
+                <button id="btn-lobby-admin" onclick="openAdminPanel()" class="hidden wood-button btn-wood w-full rounded-xl py-2.5 border border-amber-200/10 text-amber-100/75 text-[10px] font-bold uppercase tracking-wider items-center justify-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> PANEL DE ADMINISTRACIÓN
+                </button>
+
+                <div class="old-panel p-3.5">
+                    <div class="flex items-center justify-between pb-3 border-b hr-bar">
+                        <div>
+                            <div class="section-title"><span class="icon-disc !w-7 !h-7 !rounded-lg text-[10px]"><i class="fa-solid fa-dice-three"></i></span> Salón de mesas</div>
+                            <div class="text-[9px] text-amber-100/35 mt-1 ml-9">Partidas disponibles en tiempo real</div>
+                        </div>
+                        <span id="rooms-count-badge" class="bar-ribbon">0 SALAS</span>
+                    </div>
+
+                    <div id="lobby-rooms-list" class="mt-3 space-y-2.5 max-h-[52vh] overflow-y-auto scroll-tavern">
+                        <div class="empty-state">
+                            <div><i class="fa-solid fa-spinner fa-spin text-gold text-xl mb-2"></i><div class="text-xs">Buscando mesas...</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="lobby-tab-leaderboard-sec" class="hidden space-y-3">
+                <div class="old-panel p-3.5">
+                    <div class="flex items-center justify-between pb-3 border-b hr-bar">
+                        <div>
+                            <div class="section-title"><span class="icon-disc !w-7 !h-7 !rounded-lg text-[10px]"><i class="fa-solid fa-trophy"></i></span> Tabla oficial</div>
+                            <div class="text-[9px] text-amber-100/35 mt-1 ml-9">El que sube, se la banca</div>
+                        </div>
+                        <button onclick="loadLeaderboard()" class="wood-button text-[9px] uppercase tracking-wider font-bold text-amber-100/65 hover:text-amber-100">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="rank-row mt-3 text-[8px] uppercase tracking-widest text-amber-100/35 !border-0 !bg-transparent !shadow-none !p-2">
+                        <span class="text-center">Pos</span><span>Jugador</span><span class="text-center">Puntos</span><span class="text-center">PG / PP</span>
+                    </div>
+                    <div id="leaderboard-list" class="space-y-1.5 max-h-[58vh] overflow-y-auto scroll-tavern">
+                        <div class="empty-state"><div class="text-xs">Cargando tabla oficial...</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MODAL CREAR MESA -->
+    <div id="modal-create-room" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3">
+        <div class="modal-card p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="kicker">Nueva mesa</div>
+                    <h3 class="font-bar font-black text-xl text-amber-50 mt-1">ABRIR PARTIDA</h3>
+                </div>
+                <button onclick="closeCreateRoomModal()" class="wood-button btn-wood w-9 h-9 rounded-lg grid place-items-center"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="brass-rule my-4"></div>
+
+            <div>
+                <div class="kicker mb-2">Formato de partida</div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button id="opt-pts-15" onclick="selectRoomPoints(15)" class="wood-button rounded-xl py-3.5 border-2 border-[#f4dc95] bg-amber-100/10 text-amber-50">
+                        <span class="block font-blitz font-black text-xl">15</span><span class="text-[8px] uppercase tracking-widest">puntos</span>
+                    </button>
+                    <button id="opt-pts-30" onclick="selectRoomPoints(30)" class="wood-button rounded-xl py-3.5 border border-amber-100/10 bg-black/20 text-amber-100/40">
+                        <span class="block font-blitz font-black text-xl">30</span><span class="text-[8px] uppercase tracking-widest">puntos</span>
+                    </button>
+                </div>
+                <div class="text-[9px] text-amber-100/40 mt-2">La modalidad y las reglas del juego siguen exactamente como están.</div>
+            </div>
+
+            <div class="mt-5">
+                <div class="flex items-center justify-between gap-2">
+                    <div>
+                        <div class="kicker">Jugar por puntos</div>
+                        <div class="text-[9px] text-amber-100/45 mt-1">Apuesta de la tabla, de 0 a 3 por jugador.</div>
+                    </div>
+                    <div class="bar-ribbon"><i class="fa-solid fa-coins"></i> <span id="create-wager-balance">--</span></div>
+                </div>
+
+                <div class="wager-selector mt-2.5">
+                    <button id="opt-wager-0" onclick="selectWagerPoints(0)" class="wager-option">
+                        <span class="wager-number">0</span><span class="wager-caption">Amistosa</span>
+                    </button>
+                    <button id="opt-wager-1" onclick="selectWagerPoints(1)" class="wager-option active">
+                        <span class="wager-number">1</span><span class="wager-caption">Punto</span>
+                    </button>
+                    <button id="opt-wager-2" onclick="selectWagerPoints(2)" class="wager-option">
+                        <span class="wager-number">2</span><span class="wager-caption">Doble</span>
+                    </button>
+                    <button id="opt-wager-3" onclick="selectWagerPoints(3)" class="wager-option">
+                        <span class="wager-number">3</span><span class="wager-caption">Triple</span>
+                    </button>
+                </div>
+
+                <div id="wager-help" class="mt-2.5 rounded-xl bg-black/20 border border-amber-100/10 p-3 text-[10px] text-amber-50/75">
+                    Elegís cuánto arriesgás. Ambos jugadores ponen la misma cantidad y el ganador se lleva el pozo.
+                </div>
+            </div>
+
+            <div class="mt-5 flex gap-2">
+                <button onclick="closeCreateRoomModal()" class="wood-button btn-wood flex-1 rounded-xl py-3 text-[10px] uppercase font-bar font-black">Cancelar</button>
+                <button onclick="confirmCreateRoom()" class="wood-button btn-brass flex-1 rounded-xl py-3 text-[10px] uppercase font-bar font-black">CREAR MESA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AFK -->
+    <div id="modal-afk-warning" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3">
+        <div class="modal-card p-6 text-center max-w-sm">
+            <div class="icon-disc mx-auto !w-14 !h-14 !rounded-full !text-lg !border-amber-400/40"><i class="fa-solid fa-hourglass-half fa-spin"></i></div>
+            <div class="kicker mt-4">Control de mesa</div>
+            <h3 class="font-bar font-black text-xl text-amber-50 mt-1">¿SEGUÍS AHÍ?</h3>
+            <p class="text-xs text-amber-100/55 mt-2 leading-relaxed">Contestá antes de que el contador llegue a cero o la partida se resolverá por inactividad.</p>
+            <div class="mt-4 rounded-xl bg-black/20 border border-amber-100/10 p-4">
+                <div class="kicker">Tiempo restante</div>
+                <div id="afk-countdown-num" class="font-blitz font-black text-4xl text-amber-200 mt-1">20</div>
+            </div>
+            <button onclick="confirmStillHere()" class="wood-button btn-brass w-full rounded-xl py-3.5 mt-4 font-bar font-black text-[10px] uppercase">SIGO JUGANDO</button>
+        </div>
+    </div>
+
+    <!-- MAZO -->
+    <div id="modal-confirm-mazo" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3">
+        <div class="modal-card p-6 text-center max-w-sm">
+            <div class="icon-disc mx-auto !w-14 !h-14 !rounded-full text-red-300"><i class="fa-solid fa-box-archive"></i></div>
+            <div class="kicker mt-4">Decisión de mano</div>
+            <h3 class="font-bar font-black text-xl text-amber-50 mt-1">¿IRSE AL MAZO?</h3>
+            <p class="text-xs text-amber-100/55 mt-2 leading-relaxed">Se mantiene la regla actual: le otorgás los puntos disputados al rival.</p>
+            <div class="flex gap-2 mt-5">
+                <button onclick="closeMazoModal()" class="wood-button btn-wood flex-1 rounded-xl py-3 font-bar font-black text-[10px] uppercase">Cancelar</button>
+                <button onclick="confirmIrseAlMazo()" class="wood-button bg-red-900/90 hover:bg-red-800 border border-red-400/40 text-red-100 flex-1 rounded-xl py-3 font-bar font-black text-[10px] uppercase">Ir al mazo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABANDONO -->
+    <div id="modal-abandon-confirm" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3">
+        <div class="modal-card p-6 text-center max-w-sm">
+            <div class="icon-disc mx-auto !w-14 !h-14 !rounded-full text-red-300"><i class="fa-solid fa-flag"></i></div>
+            <div class="kicker mt-4">Abandono</div>
+            <h3 class="font-bar font-black text-xl text-amber-50 mt-1">¿ABANDONAR LA PARTIDA?</h3>
+            <p class="text-xs text-amber-100/55 mt-2 leading-relaxed">La victoria se asignará automáticamente al rival y se resolverá la apuesta de tabla que haya sido comprometida.</p>
+            <div class="flex gap-2 mt-5">
+                <button onclick="closeAbandonModal()" class="wood-button btn-wood flex-1 rounded-xl py-3 font-bar font-black text-[10px] uppercase">Continuar</button>
+                <button onclick="confirmAbandonMatch()" class="wood-button bg-red-900/90 hover:bg-red-800 border border-red-400/40 text-red-100 flex-1 rounded-xl py-3 font-bar font-black text-[10px] uppercase">Abandonar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESET -->
+    <div id="modal-reset-leaderboard-confirm" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3">
+        <div class="modal-card p-6 text-center max-w-sm">
+            <div class="icon-disc mx-auto !w-14 !h-14 !rounded-full text-red-300"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="kicker mt-4">Administrador</div>
+            <h3 class="font-bar font-black text-xl text-amber-50 mt-1">¿REINICIAR TABLA?</h3>
+            <p class="text-xs text-amber-100/55 mt-2 leading-relaxed">Se restablecerán a 0 los puntos, PG y PP de todos los jugadores registrados.</p>
+            <div class="flex gap-2 mt-5">
+                <button onclick="closeResetLeaderboardModal()" class="wood-button btn-wood flex-1 rounded-xl py-3 font-bar font-black text-[10px] uppercase">Cancelar</button>
+                <button onclick="confirmResetLeaderboard()" class="wood-button bg-red-900/90 hover:bg-red-800 border border-red-400/40 text-red-100 flex-1 rounded-xl py-3 font-bar font-black text-[10px] uppercase">Sí, Reiniciar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="modal-match-result" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3">
+        <div class="modal-card p-6 text-center max-w-sm">
+            <div id="result-icon-container" class="icon-disc mx-auto !w-16 !h-16 !rounded-2xl !text-2xl"><i id="result-icon" class="fa-solid fa-trophy"></i></div>
+            <div id="result-kicker" class="kicker mt-4">Partida finalizada</div>
+            <h3 id="result-title" class="font-bar font-black text-2xl text-amber-50 mt-1">¡VICTORIA!</h3>
+            <p id="result-desc" class="text-xs text-amber-100/55 mt-2 leading-relaxed">Has ganado la partida.</p>
+            <div id="result-wager" class="hidden mt-4 rounded-xl bg-black/20 border border-amber-100/10 p-3">
+                <div class="kicker">Pozo de la mesa</div>
+                <div id="result-wager-value" class="font-blitz font-black text-xl text-amber-200 mt-1">0</div>
+                <div id="result-wager-copy" class="text-[9px] text-amber-100/45 uppercase tracking-widest mt-1">Sin apuesta</div>
+            </div>
+            <button onclick="exitGameToLobby()" class="wood-button btn-brass w-full rounded-xl py-3.5 mt-5 font-bar font-black text-[10px] uppercase tracking-[.12em]">VOLVER AL SALÓN</button>
+        </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="modal-admin-panel" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3">
+        <div class="modal-card h-[92vh] p-4 sm:p-5 flex flex-col max-w-2xl">
+            <div class="flex items-center justify-between gap-3 pb-3 border-b hr-bar">
+                <div class="flex items-center gap-2.5">
+                    <div class="icon-disc"><i class="fa-solid fa-user-shield"></i></div>
+                    <div><div class="font-bar font-black text-amber-50 text-sm">PANEL DE CONTROL</div><div class="text-[8px] text-amber-100/35 uppercase tracking-[.14em]">Truco LEAGUE • EL ANCHO</div></div>
+                </div>
+                <button onclick="closeAdminPanel()" class="wood-button btn-wood w-9 h-9 rounded-lg grid place-items-center"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-1 p-1 mt-3 rounded-xl bg-black/25 border border-amber-100/8">
+                <button id="tab-admin-players" onclick="switchAdminTab('players')" class="wood-button py-2 rounded-lg bg-amber-100/10 text-amber-100 text-[9px] font-bar font-black">JUGADORES</button>
+                <button id="tab-admin-rooms" onclick="switchAdminTab('rooms')" class="wood-button py-2 rounded-lg text-amber-100/40 text-[9px] font-bar font-black">SALAS</button>
+                <button id="tab-admin-matches" onclick="switchAdminTab('matches')" class="wood-button py-2 rounded-lg text-amber-100/40 text-[9px] font-bar font-black">HISTORIAL</button>
+            </div>
+
+            <div id="admin-sec-players" class="flex-1 overflow-y-auto scroll-tavern space-y-2 mt-3 pr-1">
+                <div class="flex justify-between items-center gap-2">
+                    <div class="text-[10px] text-amber-100/45">Gestionar jugadores registrados</div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openResetLeaderboardModal()" class="wood-button bg-red-950/60 hover:bg-red-900 border border-red-400/30 text-red-200 px-2 py-1 rounded text-[9px] font-bold">Reiniciar tabla</button>
+                        <span id="admin-players-count" class="bar-ribbon">0</span>
+                    </div>
+                </div>
+                <div id="admin-players-list" class="space-y-2"><div class="empty-state min-h-[8rem]"><div class="text-xs">Cargando jugadores...</div></div></div>
+            </div>
+
+            <div id="admin-sec-rooms" class="hidden flex-1 overflow-y-auto scroll-tavern space-y-2 mt-3 pr-1">
+                <div class="flex justify-between items-center"><div class="text-[10px] text-amber-100/45">Salas activas y en espera</div><button onclick="loadAdminRooms()" class="wood-button text-[9px] text-amber-100/65 hover:text-amber-100"><i class="fa-solid fa-rotate-right"></i> Refrescar</button></div>
+                <div id="admin-rooms-list" class="space-y-2"><div class="empty-state min-h-[8rem]"><div class="text-xs">Buscando salas...</div></div></div>
+            </div>
+
+            <div id="admin-sec-matches" class="hidden flex-1 overflow-y-auto scroll-tavern space-y-2 mt-3 pr-1">
+                <div class="flex justify-between items-center"><div class="text-[10px] text-amber-100/45">Últimas partidas registradas</div><button onclick="loadAdminMatches()" class="wood-button text-[9px] text-amber-100/65 hover:text-amber-100"><i class="fa-solid fa-rotate-right"></i> Refrescar</button></div>
+                <div id="admin-matches-list" class="space-y-2"><div class="empty-state min-h-[8rem]"><div class="text-xs">Cargando historial...</div></div></div>
+            </div>
+
+            <button onclick="closeAdminPanel()" class="wood-button btn-wood w-full rounded-xl py-2.5 mt-3 font-bar font-black text-[9px] uppercase">Cerrar panel</button>
+        </div>
+    </div>
+
+    <!-- GAME -->
+    <section id="screen-game" class="hidden flex-1 flex flex-col px-3 py-3 sm:px-5 sm:py-4 overflow-y-auto scroll-tavern">
+        <div class="w-full max-w-3xl mx-auto flex-1 flex flex-col gap-2.5">
+
+            <div class="old-panel p-2.5 sm:p-3">
+                <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <div class="min-w-0">
+                        <div class="seat-name">
+                            <span id="game-op-turn" class="hidden turn-chip">TURNO</span>
+                            <span id="game-op-name" class="font-bold text-xs text-amber-50 truncate">Rival</span>
+                        </div>
+                        <div id="game-op-score" class="score-number score-op mt-1 pl-1">00</div>
+                    </div>
+
+                    <div class="px-2 sm:px-4 text-center border-x hr-bar">
+                        <div class="match-meta">
+                            <span class="meta-chip">A <strong id="game-max-pts">15</strong></span>
+                            <span class="meta-chip wager-chip">POZO <strong id="game-wager-pot">0</strong></span>
+                        </div>
+                        <div id="game-hand-status" class="text-[8px] text-amber-100/45 uppercase tracking-widest mt-1 truncate">MANO DE: TÚ</div>
+                        <button id="btn-game-exit" onclick="handleGameExitButtonClick()" class="wood-button mt-1.5 px-2 py-1 rounded-lg text-[8px] uppercase font-bold bg-black/25 border border-red-400/25 text-red-200/75 flex items-center justify-center gap-1 mx-auto">
+                            <i id="btn-game-exit-icon" class="fa-solid fa-flag text-[8px]"></i><span id="btn-game-exit-text">ABANDONAR</span>
+                        </button>
+                    </div>
+
+                    <div class="min-w-0 text-right">
+                        <div class="seat-name !justify-end ml-auto">
+                            <span id="game-me-name" class="font-bold text-xs text-amber-50 truncate">Tú</span>
+                            <span id="game-me-turn" class="hidden turn-chip">TURNO</span>
+                        </div>
+                        <div id="game-me-score" class="score-number score-me mt-1 pr-1">00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="felt-table flex-1 min-h-[380px] sm:min-h-[500px] p-3 sm:p-5 flex flex-col justify-between">
+                <div class="felt-ornament"><span>EL ANCHO</span></div>
+
+                <div class="relative z-10 flex flex-col items-center gap-2">
+                    <div id="op-cards-hand" class="card-zone flex justify-center -space-x-2.5 min-h-[4.7rem]"></div>
+                    <div class="kicker text-amber-100/35">Rival</div>
+                    <div id="op-played-cards" class="card-zone flex justify-center gap-2 min-h-[132px] items-center"></div>
+                </div>
+
+                <div id="blitz-toast" class="hidden relative z-20 self-center max-w-[90%] rounded-xl border border-amber-200/30 bg-[#100804]/92 px-5 py-2.5 text-center shadow-2xl">
+                    <span id="blitz-toast-text" class="font-bar font-black text-amber-100 text-sm uppercase tracking-wider block"></span>
+                    <span id="blitz-toast-sub" class="text-[9px] text-amber-100/45 font-bold block mt-0.5"></span>
+                </div>
+
+                <div class="relative z-10 flex flex-col items-center gap-2">
+                    <div id="me-played-cards" class="card-zone flex justify-center gap-2 min-h-[132px] items-center"></div>
+                    <div id="me-cards-hand" class="card-zone flex justify-center -space-x-1.5 sm:space-x-0 pt-1 min-h-[7.1rem]"></div>
+                    <div class="kicker text-amber-100/45">Tus cartas</div>
+                </div>
+            </div>
+
+            <div class="old-panel p-2.5 sm:p-3">
+                <div id="envido-score-btn-container" class="hidden space-y-2 mb-2">
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <button id="btn-cantar-tantos-envido" onclick="cantarTantosEnvido('CANTAR')" class="wood-button rounded-xl py-3 bg-[#0e4933] hover:bg-[#145d41] border border-emerald-300/25 text-amber-50 text-[10px] font-bar font-black uppercase flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-comment-dots text-amber-200"></i><span id="btn-tantos-text">TENGO 28 DE ENVIDO</span>
+                        </button>
+                        <button id="btn-son-buenas" onclick="cantarTantosEnvido('SON_BUENAS')" class="hidden wood-button rounded-xl py-3 bg-[#6b4b13] hover:bg-[#815f18] border border-amber-200/35 text-white text-[9px] font-bar font-black uppercase px-3">SON BUENAS</button>
+                    </div>
+                </div>
+
+                <div id="action-buttons-grid" class="grid grid-cols-3 gap-1.5 font-bar font-bold text-xs"></div>
+
+                <div id="mazo-container" class="pt-2 mt-2 border-t hr-bar flex justify-center">
+                    <button id="btn-irse-al-mazo" onclick="openMazoModal()" class="wood-button mazo-link w-full sm:w-2/3 py-2.5 rounded-xl text-[9px] uppercase tracking-wider font-bar font-black flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-box-archive"></i><span>Irse al mazo</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, 
+            deleteDoc, onSnapshot, runTransaction 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC_mFMEf8Ea2KYbtVe7iCrdgATftQtl8rE",
+            authDomain: "truco-league-cf286.firebaseapp.com",
+            projectId: "truco-league-cf286",
+            storageBucket: "truco-league-cf286.firebasestorage.app",
+            messagingSenderId: "1073966718355",
+            appId: "1:1073966718355:web:1d343f97e28edb322fdc66"
+        };
+
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Rutas Oficiales Firestore Truco LEAGUE
+        const PLAYERS_COL = "artifacts/truco-league-app/public/data/jugadores";
+        const MATCHES_COL = "artifacts/truco-league-app/public/data/partidas";
+        const ROOMS_COL = "artifacts/truco-league-app/public/data/salas_blitz";
+
+        // Helper to get collection refs from slash paths
+        function colRef(path) { return collection(db, ...path.split('/')); }
+
+
+        // Límite Diario de Partidas
+        const MAX_DAILY_MATCHES = 5;
+
+        // Estado Global
+        let userData = null;
+        let selectedRoomPoints = 15;
+        let activeRoomId = null;
+        let roomUnsubscribe = null;
+        let currentRoomState = null;
+        let matchFinishedHandled = false;
+        let isActionPending = false; // Bloqueo anti-spam click
+        let selectedWagerPoints = 1;
+        let lastGameRenderSignature = '';
+        const joiningRoomIds = new Set();
+        let lastBalanceSyncedRoomId = null;
+
+        // INACTIVIDAD Y TIMERS (40s advertencia + 20s cuenta regresiva)
+        let idleTimer = null;
+        let afkCountdownInterval = null;
+        let afkTimeRemaining = 20;
+
+        const ADMIN_USER_KEY = "samu";
+        const ADMIN_PASS_HASH = "TmFydXRvNjcy";
+
+        // JERARQUÍA DE VALORES EN EL TRUCO ARGENTINO
+        function getCardPower(card) {
+            if (!card) return 0;
+            const { suit, value } = card;
+            if (value === 1 && suit === 'espada') return 14; // Ancho de Espadas
+            if (value === 1 && suit === 'basto') return 13;  // Ancho de Bastos
+            if (value === 7 && suit === 'espada') return 12; // 7 de Espadas
+            if (value === 7 && suit === 'oro') return 11;    // 7 de Oro
+            if (value === 3) return 10;                      // 3s
+            if (value === 2) return 9;                       // 2s
+            if (value === 1) return 8;                       // 1s Falsos (Copa / Oro)
+            if (value === 12) return 7;                      // 12s
+            if (value === 11) return 6;                      // 11s
+            if (value === 10) return 5;                      // 10s
+            if (value === 7) return 4;                       // 7s Falsos (Copa / Basto)
+            if (value === 6) return 3;                       // 6s
+            if (value === 5) return 2;                       // 5s
+            if (value === 4) return 1;                       // 4s
+            return 0;
+        }
+
+        function create40CardDeck() {
+            const suits = ['espada', 'basto', 'oro', 'copa'];
+            const values = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
+            const deck = [];
+            for (const suit of suits) {
+                for (const value of values) {
+                    deck.push({ suit, value, id: `${value}_${suit}_${Math.random().toString(36).substring(2,6)}` });
+                }
+            }
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            return deck;
+        }
+
+        function calculateEnvidoPoints(cards) {
+            if (!cards || cards.length === 0) return 0;
+            const suitGroups = {};
+            cards.forEach(c => {
+                if (!suitGroups[c.suit]) suitGroups[c.suit] = [];
+                const val = c.value >= 10 ? 0 : c.value;
+                suitGroups[c.suit].push(val);
+            });
+
+            let maxEnvido = 0;
+            for (const suit in suitGroups) {
+                const vals = suitGroups[suit];
+                if (vals.length >= 2) {
+                    vals.sort((a, b) => b - a);
+                    const score = 20 + vals[0] + vals[1];
+                    if (score > maxEnvido) maxEnvido = score;
+                } else if (vals.length === 1) {
+                    if (vals[0] > maxEnvido) maxEnvido = vals[0];
+                }
+            }
+            return maxEnvido;
+        }
+
+        // VALORES DEL ENVIDO / REENVIDO SEGÚN LA CADENA DE CANTOS.
+        // Se permite una sola apertura de Envido por mano, pero sí se pueden
+        // hacer las subidas legales: Envido-Envido, Envido-Real, Envido-Falta,
+        // Real-Falta y las continuaciones correspondientes.
+        function calculateEnvidoChainPoints(chain, isAccepted, maxPoints, p1Score, p2Score) {
+            const normalized = Array.isArray(chain) ? chain.filter(Boolean) : [];
+            const key = normalized.join(',');
+
+            const accepted = {
+                'envido': 2,
+                'real_envido': 3,
+                'envido,envido': 4,
+                'envido,real_envido': 5,
+                'envido,envido,real_envido': 7
+            };
+
+            const declined = {
+                'envido': 1,
+                'real_envido': 1,
+                'falta_envido': 1,
+                'envido,envido': 2,
+                'envido,real_envido': 2,
+                'envido,envido,real_envido': 4
+            };
+
+            if (normalized.length === 0) return isAccepted ? 2 : 1;
+
+            // Falta Envido toma el valor de la falta según la puntuación actual.
+            if (normalized[normalized.length - 1] === 'falta_envido') {
+                if (!isAccepted) {
+                    // Tabla estándar: al no querido se cobra el valor anterior de la cadena.
+                    const prev = normalized.slice(0, -1);
+                    return prev.length ? calculateEnvidoChainPoints(prev, true, maxPoints, p1Score, p2Score) : 1;
+                }
+
+                const highestScore = Math.max(Number(p1Score) || 0, Number(p2Score) || 0);
+                return Math.max(1, (Number(maxPoints) || 30) - highestScore);
+            }
+
+            if (isAccepted && accepted[key] !== undefined) return accepted[key];
+            if (!isAccepted && declined[key] !== undefined) return declined[key];
+
+            // Fallback acumulativo para cadenas válidas no contempladas explícitamente.
+            if (isAccepted) {
+                return normalized.reduce((sum, item) => sum + (item === 'real_envido' ? 3 : 2), 0);
+            }
+
+            return normalized.slice(0, -1).length
+                ? calculateEnvidoChainPoints(normalized.slice(0, -1), true, maxPoints, p1Score, p2Score)
+                : 1;
+        }
+
+        function getSuitIcon(suit, extraClass = '') {
+            const cls = `card-suit-svg ${extraClass}`.trim();
+            const base = (body) => `<svg class="${cls}" viewBox="0 0 48 64" aria-hidden="true" focusable="false">${body}</svg>`;
+            switch(suit) {
+                case 'espada':
+                    return base(`<path d="M24 3 C20 16 12 24 12 34 C12 40 17 45 24 45 C31 45 36 40 36 34 C36 24 28 16 24 3Z" fill="currentColor"/><path d="M9 49 H39" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M19 47 L14 60 M29 47 L34 60" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>`);
+                case 'basto':
+                    return base(`<path d="M15 3 C22 10 28 18 26 29 C25 35 20 37 16 34 C12 31 13 26 10 22 C7 18 5 10 15 3Z" fill="currentColor"/><path d="M31 9 C37 16 39 24 34 29 C31 32 28 28 27 24 C25 18 27 13 31 9Z" fill="currentColor"/><path d="M20 31 C17 40 17 48 22 61" stroke="currentColor" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M16 59 H29" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>`);
+                case 'oro':
+                    return base(`<circle cx="24" cy="31" r="18" fill="currentColor"/><circle cx="24" cy="31" r="12" fill="none" stroke="#f7eed7" stroke-width="2" opacity=".8"/><path d="M24 7 L26 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M17 15 L31 15" stroke="#f7eed7" stroke-width="2" opacity=".35"/>`);
+                case 'copa':
+                    return base(`<path d="M10 8 H38 V14 C38 27 31 36 24 40 C17 36 10 27 10 14Z" fill="currentColor"/><path d="M18 40 H30 M24 39 V55 M16 59 H32" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>`);
+                default:
+                    return base(`<circle cx="24" cy="32" r="18" fill="currentColor" opacity=".65"/>`);
+            }
+        }
+
+        function getCardVisualLabel(value) {
+            return ({10:'SOTA', 11:'CABALLO', 12:'REY'})[value] || String(value);
+        }
+
+        function getPipLayout(value) {
+            const layouts = {
+                1: [[50,50]],
+                2: [[50,27],[50,73]],
+                3: [[50,22],[50,50],[50,78]],
+                4: [[33,30],[67,30],[33,70],[67,70]],
+                5: [[33,27],[67,27],[50,50],[33,73],[67,73]],
+                6: [[33,23],[67,23],[33,50],[67,50],[33,77],[67,77]],
+                7: [[33,18],[67,18],[50,34],[33,50],[67,50],[33,82],[67,82]]
+            };
+            return layouts[value] || [];
+        }
+
+        function buildCardCenter(card) {
+            const label = getCardVisualLabel(card.value);
+            const figure = card.value >= 10;
+            if (figure) {
+                const initial = card.value === 10 ? 'S' : (card.value === 11 ? 'C' : 'R');
+                return `
+                    <div class="figure-card">
+                        ${getSuitIcon(card.suit)}
+                        <div class="figure-letter">${initial}</div>
+                        <div class="figure-name">${label}</div>
+                    </div>`;
+            }
+
+            const pips = getPipLayout(card.value).map(([x,y]) => `
+                <span class="pip" style="left:${x}%;top:${y}%">${getSuitIcon(card.suit)}</span>
+            `).join('');
+            return `<div class="pip-grid">${pips}</div>`;
+        }
+
+        function getSuitClass(suit) {
+            switch(suit) {
+                case 'espada': return 'suit-espada';
+                case 'basto':  return 'suit-basto';
+                case 'oro':    return 'suit-oro';
+                case 'copa':   return 'suit-copa';
+                default:       return '';
+            }
+        }
+
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+            }[ch]));
+        }
+
+        function getTodayStr() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function checkIsDailyLimitReached() {
+            if (!userData) return false;
+            const today = getTodayStr();
+            if (userData.lastMatchDate !== today) {
+                userData.dailyMatches = 0;
+                userData.lastMatchDate = today;
+            }
+            return (userData.dailyMatches || 0) >= MAX_DAILY_MATCHES;
+        }
+
+        async function incrementDailyMatchesCount() {
+            if (!userData) return;
+            const today = getTodayStr();
+            if (userData.lastMatchDate !== today) {
+                userData.dailyMatches = 0;
+                userData.lastMatchDate = today;
+            }
+            userData.dailyMatches = (userData.dailyMatches || 0) + 1;
+
+            if (userData.id && userData.id !== 'admin_samu_id') {
+                try {
+                    await updateDoc(doc(db, PLAYERS_COL, userData.id), {
+                        dailyMatches: userData.dailyMatches,
+                        lastMatchDate: userData.lastMatchDate
+                    });
+                } catch(err) {
+                    console.error("Error guardando cuota de partidas:", err);
+                }
+            }
+            setupUserUI();
+        }
+
+        async function decrementDailyMatchesCount() {
+            if (!userData) return;
+            if ((userData.dailyMatches || 0) > 0) {
+                userData.dailyMatches = userData.dailyMatches - 1;
+                if (userData.id && userData.id !== 'admin_samu_id') {
+                    try {
+                        await updateDoc(doc(db, PLAYERS_COL, userData.id), {
+                            dailyMatches: userData.dailyMatches
+                        });
+                    } catch(err) {
+                        console.error("Error al devolver intento:", err);
+                    }
+                }
+                setupUserUI();
+            }
+        }
+
+        function showLoginError(msg) {
+            const errDiv = document.getElementById('login-error');
+            errDiv.textContent = msg;
+            errDiv.classList.remove('hidden');
+        }
+
+        function checkIsAdmin(user) {
+            if (!user) return false;
+            const uname = (user.usuario || user.nombre || '').toLowerCase();
+            return user.rol === 'admin' || user.esAdmin === true || uname === 'samu';
+        }
+
+        async function syncCurrentUserFromFirestore() {
+            if (!userData?.id) return;
+            try {
+                const snap = await getDoc(doc(db, PLAYERS_COL, userData.id));
+                if (snap.exists()) {
+                    userData = { id: userData.id, ...snap.data(), ...({ rol: userData.rol, esAdmin: userData.esAdmin }) };
+                    setupUserUI();
+                }
+            } catch (err) {
+                console.warn('No se pudo refrescar el saldo del jugador:', err);
+            }
+        }
+
+        function setupUserUI() {
+            document.getElementById('header-user').classList.remove('hidden');
+            document.getElementById('user-display-name').textContent = userData.nombre || userData.usuario;
+            document.getElementById('lobby-username').textContent = userData.nombre || userData.usuario;
+            document.getElementById('lobby-user-pts').textContent = (userData.puntos || 0);
+            const secondaryPts = document.getElementById('lobby-user-pts-secondary');
+            if (secondaryPts) secondaryPts.textContent = (userData.puntos || 0);
+            const wagerBalance = document.getElementById('create-wager-balance');
+            if (wagerBalance) wagerBalance.textContent = `${Number(userData.puntos || 0)} PTS`;
+            document.getElementById('profile-avatar').textContent = (userData.nombre || userData.usuario).charAt(0).toUpperCase();
+
+            const today = getTodayStr();
+            if (userData.lastMatchDate !== today) {
+                userData.dailyMatches = 0;
+                userData.lastMatchDate = today;
+            }
+            const currentDaily = userData.dailyMatches || 0;
+            const dailyLabel = document.getElementById('lobby-daily-matches');
+            if (dailyLabel) {
+                dailyLabel.textContent = `${currentDaily} / ${MAX_DAILY_MATCHES}`;
+                dailyLabel.className = currentDaily >= MAX_DAILY_MATCHES ? "text-red-400 font-bold" : "text-gold font-bold";
+            }
+
+            const isAdmin = checkIsAdmin(userData);
+            if (isAdmin) {
+                document.getElementById('admin-badge').classList.remove('hidden');
+                document.getElementById('btn-header-admin').classList.remove('hidden');
+                document.getElementById('btn-lobby-admin').classList.remove('hidden');
+            } else {
+                document.getElementById('admin-badge').classList.add('hidden');
+                document.getElementById('btn-header-admin').classList.add('hidden');
+                document.getElementById('btn-lobby-admin').classList.add('hidden');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('login-username').value.trim();
+            const passwordInput = document.getElementById('login-password').value.trim();
+            const errDiv = document.getElementById('login-error');
+            errDiv.classList.add('hidden');
+
+            try {
+                if (usernameInput.toLowerCase() === ADMIN_USER_KEY && btoa(passwordInput) === ADMIN_PASS_HASH) {
+                    // SAMU debe usar el MISMO documento de Firestore que usa como jugador.
+                    // El ID temporal 'admin_samu_id' impedía que las victorias del administrador
+                    // se escribieran en /jugadores/{id} y por eso no aparecían en la tabla.
+                    const adminSnap = await getDocs(colRef(PLAYERS_COL));
+                    let adminPlayer = null;
+
+                    adminSnap.forEach(docSnap => {
+                        if (adminPlayer) return;
+                        const data = docSnap.data();
+                        const candidates = [data.usuario, data.nombre].filter(Boolean).map(v => String(v).trim().toLowerCase());
+                        if (candidates.includes(ADMIN_USER_KEY)) {
+                            adminPlayer = { id: docSnap.id, ...data };
+                        }
+                    });
+
+                    if (!adminPlayer) {
+                        showLoginError('No se encontró el jugador SAMU en Firestore. El administrador debe existir también en la colección jugadores.');
+                        return;
+                    }
+
+                    userData = {
+                        ...adminPlayer,
+                        usuario: adminPlayer.usuario || ADMIN_USER_KEY,
+                        nombre: adminPlayer.nombre || 'SAMU',
+                        rol: 'admin',
+                        esAdmin: true
+                    };
+                    setupUserUI();
+                    showScreen('screen-lobby');
+                    listenToRooms();
+                    return;
+                }
+
+                const snap = await getDocs(colRef(PLAYERS_COL));
+                let foundUser = null;
+
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const uName = (data.usuario || data.nombre || '').toLowerCase();
+                    if (uName === usernameInput.toLowerCase()) {
+                        if (!data.password || data.password === passwordInput) {
+                            foundUser = { id: docSnap.id, ...data };
+                        }
+                    }
+                });
+
+                if (foundUser) {
+                    userData = foundUser;
+                    setupUserUI();
+                    showScreen('screen-lobby');
+                    listenToRooms();
+                } else {
+                    showLoginError('Usuario o contraseña incorrectos, o no registrado en Truco LEAGUE.');
+                }
+            } catch (err) {
+                console.error("Error en login:", err);
+                showLoginError('Error de conexión con Firestore.');
+            }
+        }
+
+        function logout() {
+            clearAfkTimers();
+            userData = null;
+            if (roomUnsubscribe) roomUnsubscribe();
+            document.getElementById('header-user').classList.add('hidden');
+            showScreen('screen-login');
+        }
+
+        function showScreen(screenId) {
+            ['screen-login', 'screen-lobby', 'screen-game'].forEach(s => {
+                document.getElementById(s).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function switchLobbyTab(tab) {
+            const btnRooms = document.getElementById('btn-tab-rooms');
+            const btnLeaderboard = document.getElementById('btn-tab-leaderboard');
+            const secRooms = document.getElementById('lobby-tab-rooms-sec');
+            const secLeaderboard = document.getElementById('lobby-tab-leaderboard-sec');
+
+            if (tab === 'rooms') {
+                btnRooms.className = "py-2.5 rounded-lg bg-gold/20 text-gold border border-gold/30 flex items-center justify-center gap-2";
+                btnLeaderboard.className = "py-2.5 rounded-lg text-wood-500 hover:text-amber-200 flex items-center justify-center gap-2";
+                secRooms.classList.remove('hidden');
+                secLeaderboard.classList.add('hidden');
+            } else {
+                btnLeaderboard.className = "py-2.5 rounded-lg bg-gold/20 text-gold border border-gold/30 flex items-center justify-center gap-2";
+                btnRooms.className = "py-2.5 rounded-lg text-wood-500 hover:text-amber-200 flex items-center justify-center gap-2";
+                secLeaderboard.classList.remove('hidden');
+                secRooms.classList.add('hidden');
+                loadLeaderboard();
+            }
+        }
+
+        // CARGA Y RENDERING DE TABLA DE POSICIONES OFICIAL TRUCO LEAGUE
+        async function loadLeaderboard() {
+            const container = document.getElementById('leaderboard-list');
+            container.innerHTML = `<div class="text-center py-8 text-wood-500 text-xs font-medium"><i class="fa-solid fa-spinner fa-spin text-gold block text-base mb-1"></i> Cargando tabla oficial...</div>`;
+
+            try {
+                const snap = await getDocs(colRef(PLAYERS_COL));
+                const players = [];
+
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const pg = data.pg ?? data.ganadas ?? data.partidasGanadas ?? 0;
+                    const pp = data.pp ?? data.perdidas ?? data.partidasPerdidas ?? 0;
+                    players.push({
+                        id: docSnap.id,
+                        nombre: data.nombre || data.usuario || 'Jugador',
+                        puntos: data.puntos || 0,
+                        pg: pg,
+                        pp: pp
+                    });
+                });
+
+                players.sort((a, b) => b.puntos - a.puntos);
+                container.innerHTML = '';
+
+                if (players.length === 0) {
+                    container.innerHTML = `<div class="text-center py-8 text-wood-500 text-xs">No hay jugadores registrados en la liga.</div>`;
+                    return;
+                }
+
+                players.forEach((p, idx) => {
+                    const isMe = p.id === userData?.id;
+                    const pos = idx + 1;
+                    let rankBadge = `<span class="font-bar font-bold text-amber-200/70 text-xs">#${pos}</span>`;
+                    
+                    if (pos === 1) rankBadge = `<span class="text-gold text-sm"><i class="fa-solid fa-trophy"></i></span>`;
+                    else if (pos === 2) rankBadge = `<span class="text-slate-300 text-sm"><i class="fa-solid fa-medal"></i></span>`;
+                    else if (pos === 3) rankBadge = `<span class="text-amber-600 text-sm"><i class="fa-solid fa-award"></i></span>`;
+
+                    const row = document.createElement('div');
+                    row.className = `rank-row ${isMe ? 'me' : ''}`;
+                    row.innerHTML = `
+                        <div class="rank-pos">${rankBadge}</div>
+                        <div class="rank-name">${escapeHTML(p.nombre)} ${isMe ? '<span class="text-[8px] text-amber-100/35 font-normal">(Tú)</span>' : ''}</div>
+                        <div class="rank-pts">${p.puntos}</div>
+                        <div class="rank-record">${p.pg}/${p.pp}</div>
+                    `;
+                    container.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error al cargar clasificación:", err);
+            }
+        }
+
+        async function openCreateRoomModal() {
+            if (checkIsDailyLimitReached()) {
+                showBlitzToast(`Límite de ${MAX_DAILY_MATCHES} partidas alcanzado`, "Atención");
+                return;
+            }
+
+            const balance = Math.max(0, Number(userData?.puntos) || 0);
+            const maxAffordable = Math.min(3, balance);
+            if (balance === 0) selectedWagerPoints = 0; else if (selectedWagerPoints === 0) selectedWagerPoints = 1;
+            if (selectedWagerPoints > maxAffordable) selectedWagerPoints = maxAffordable;
+            updateWagerSelector();
+            document.getElementById('modal-create-room').classList.remove('hidden');
+        }
+
+        function updateWagerSelector() {
+            const balance = Math.max(0, Number(userData?.puntos) || 0);
+            [0,1,2,3].forEach(points => {
+                const btn = document.getElementById(`opt-wager-${points}`);
+                if (!btn) return;
+                const isAffordable = points === 0 || balance >= points;
+                btn.disabled = !isAffordable;
+                btn.classList.toggle('active', selectedWagerPoints === points && isAffordable);
+            });
+
+            if (balance === 0) selectedWagerPoints = 0;
+            const help = document.getElementById('wager-help');
+            if (help) {
+                if (selectedWagerPoints === 0) {
+                    help.textContent = 'Mesa amistosa: no se bloquean puntos de tabla.';
+                } else {
+                    help.textContent = `Cada jugador compromete ${selectedWagerPoints} PT. El pozo total será de ${selectedWagerPoints * 2} PT y el ganador recuperará ambos aportes.`;
+                }
+            }
+            const balanceEl = document.getElementById('create-wager-balance');
+            if (balanceEl) balanceEl.textContent = `${balance} PTS`;
+        }
+
+        function selectWagerPoints(points) {
+            const balance = Math.max(0, Number(userData?.puntos) || 0);
+            const safe = Math.max(0, Math.min(3, Number(points) || 0));
+            if (safe > balance) {
+                showBlitzToast(`Necesitás ${safe} puntos disponibles`, "Apuesta");
+                return;
+            }
+            selectedWagerPoints = safe;
+            updateWagerSelector();
+        }
+
+        function closeCreateRoomModal() {
+            document.getElementById('modal-create-room').classList.add('hidden');
+        }
+
+        function selectRoomPoints(pts) {
+            selectedRoomPoints = pts;
+            const btn15 = document.getElementById('opt-pts-15');
+            const btn30 = document.getElementById('opt-pts-30');
+
+            if (pts === 15) {
+                btn15.className = "py-3 border-2 border-gold bg-gold/20 text-gold-light font-bar font-bold rounded-xl text-center shadow-bar-gold";
+                btn30.className = "py-3 border-2 border-wood-700 bg-wood-950 text-wood-500 font-bar font-bold rounded-xl text-center hover:border-gold/40";
+            } else {
+                btn30.className = "py-3 border-2 border-gold bg-gold/20 text-gold-light font-bar font-bold rounded-xl text-center shadow-bar-gold";
+                btn15.className = "py-3 border-2 border-wood-700 bg-wood-950 text-wood-500 font-bar font-bold rounded-xl text-center hover:border-gold/40";
+            }
+        }
+
+        async function confirmCreateRoom() {
+            if (checkIsDailyLimitReached()) {
+                showBlitzToast(`Límite diario de ${MAX_DAILY_MATCHES} partidas alcanzado`, "Atención");
+                return;
+            }
+            closeCreateRoomModal();
+            try {
+                matchFinishedHandled = false;
+                const newRoomRef = doc(colRef(ROOMS_COL));
+                const balance = Math.max(0, Number(userData?.puntos) || 0);
+                if (selectedWagerPoints > balance) {
+                    showBlitzToast(`No tenés puntos suficientes para apostar ${selectedWagerPoints}`, "Apuesta");
+                    return;
+                }
+
+                const roomData = {
+                    createdAt: new Date().toISOString(),
+                    maxPoints: selectedRoomPoints,
+                    status: 'WAITING',
+                    wagerPoints: selectedWagerPoints,
+                    wagerPot: selectedWagerPoints * 2,
+                    wagerLocked: false,
+                    wagerSettled: false,
+                    players: {
+                        p1: { id: userData.id, name: userData.nombre || userData.usuario, score: 0 },
+                        p2: null
+                    },
+                    gameState: null
+                };
+
+                await setDoc(newRoomRef, roomData);
+                joinGameRoom(newRoomRef.id);
+            } catch (err) {
+                console.error("Error al crear la sala:", err);
+            }
+        }
+
+        function listenToRooms() {
+            onSnapshot(colRef(ROOMS_COL), (snapshot) => {
+                const container = document.getElementById('lobby-rooms-list');
+                container.innerHTML = '';
+
+                const activeDocs = [];
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.status === 'WAITING' || data.status === 'PLAYING') {
+                        activeDocs.push({ id: docSnap.id, ...data });
+                    }
+                });
+
+                document.getElementById('rooms-count-badge').textContent = activeDocs.length + " SALAS";
+
+                if (activeDocs.length === 0) {
+                    container.innerHTML = `<div class="text-center py-10 text-wood-500 text-xs font-medium">No hay mesas activas en este momento. ¡Crea una!</div>`;
+                    return;
+                }
+
+                activeDocs.forEach(room => {
+                    const rid = room.id;
+                    const p1Name = room.players?.p1?.name || 'Jugador 1';
+                    const isWaiting = room.status === 'WAITING';
+                    const isMyRoom = room.players?.p1?.id === userData?.id;
+
+                    let actionBtnHTML = '';
+                    if (isWaiting) {
+                        if (isMyRoom) {
+                            actionBtnHTML = `
+                                <button onclick="cancelRoomFromLobby('${rid}')" class="bg-red-950/80 hover:bg-red-900 border border-red-500/50 text-red-300 font-bar font-bold py-1.5 px-2.5 rounded-lg text-xs uppercase flex items-center gap-1 transition-all">
+                                    <i class="fa-solid fa-xmark"></i> CANCELAR
+                                </button>
+                            `;
+                        } else {
+                            actionBtnHTML = `
+                                <button onclick="joinGameRoom('${rid}')" class="btn-bar-gold font-bar font-black py-1.5 px-3 rounded-lg text-xs uppercase shadow-md">
+                                    UNIRSE
+                                </button>
+                            `;
+                        }
+                    } else {
+                        actionBtnHTML = `<span class="text-[10px] font-bar text-amber-400 font-bold uppercase bg-amber-950/60 px-2 py-1 rounded border border-amber-500/30">EN JUEGO</span>`;
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = "room-card";
+                    const wager = Number(room.wagerPoints) || 0;
+                    const pot = Number(room.wagerPot) || wager * 2;
+                    card.style.animationDelay = `${Math.min((activeDocs.indexOf(room) || 0) * 35, 280)}ms`;
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="room-token"><i class="fa-solid fa-coins"></i></div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-amber-50 text-xs flex items-center gap-1.5 flex-wrap">
+                                    <span class="truncate">${escapeHTML(p1Name)}</span>
+                                    <span class="bar-ribbon !py-1 !px-2">${room.maxPoints} PTS</span>
+                                </div>
+                                <div class="text-[9px] text-amber-100/40 mt-1 uppercase tracking-wider">
+                                    ${isWaiting ? 'Esperando rival' : 'Mesa en juego'} • ${wager > 0 ? `Juego por ${wager} PT • Pozo ${pot}` : 'Mesa amistosa'}
+                                </div>
+                            </div>
+                        </div>
+                        ${actionBtnHTML}
+                    `;
+                    container.appendChild(card);
+                });
+            });
+        }
+
+        async function cancelRoomFromLobby(roomId) {
+            try {
+                const roomRef = doc(db, ROOMS_COL, roomId);
+                const snap = await getDoc(roomRef);
+                if (snap.exists()) {
+                    const roomData = snap.data();
+                    if (roomData.players?.p2) {
+                        showBlitzToast("Un rival ya ingresó a la sala", "Error");
+                        return;
+                    }
+                    await deleteDoc(roomRef);
+                    await decrementDailyMatchesCount();
+                }
+            } catch (err) {
+                console.error("Error al cancelar la sala:", err);
+            }
+        }
+
+        function createNewRoundState(p1Id, p2Id, manoStarter, scores = { p1Score: 0, p2Score: 0 }) {
+            const deck = create40CardDeck();
+            const p1Cards = [deck.pop(), deck.pop(), deck.pop()];
+            const p2Cards = [deck.pop(), deck.pop(), deck.pop()];
+
+            const p1Env = calculateEnvidoPoints(p1Cards);
+            const p2Env = calculateEnvidoPoints(p2Cards);
+
+            return {
+                manoStarter: manoStarter,
+                turn: manoStarter,
+                hands: {
+                    [p1Id]: p1Cards,
+                    [p2Id]: p2Cards
+                },
+                played: {
+                    [p1Id]: [],
+                    [p2Id]: []
+                },
+                envidoScore: {
+                    [p1Id]: p1Env,
+                    [p2Id]: p2Env
+                },
+                envidoState: 'AVAILABLE',
+                envidoCallUsed: false,
+                envidoChain: [],
+                envidoPointsStage: null,
+                envidoCantedValues: {},
+                envidoPieCanSayBuenas: false,
+                deferredTrucoCall: null,
+                trucoState: 'NONE',
+                trucoValue: 1,
+                trucoCantador: null,
+                pendingCall: null,
+                tricks: [],
+                p1Score: scores.p1Score || 0,
+                p2Score: scores.p2Score || 0,
+                lastCanto: null
+            };
+        }
+
+        async function joinGameRoom(roomId) {
+            if (checkIsDailyLimitReached()) {
+                showBlitzToast(`Límite de ${MAX_DAILY_MATCHES} partidas alcanzado`, "Atención");
+                return;
+            }
+
+            const roomRef = doc(db, ROOMS_COL, roomId);
+            try {
+                const initialSnap = await getDoc(roomRef);
+                if (!initialSnap.exists()) {
+                    showBlitzToast("La mesa ya no existe", "Salón");
+                    return;
+                }
+
+                const seedRoom = initialSnap.data();
+
+                // El creador solo entra en observación. El rival sí necesita reclamar
+                // la mesa en una transacción para bloquear el pozo y arrancar el juego.
+                if (seedRoom.status === 'WAITING' &&
+                    seedRoom.players?.p1?.id !== userData.id &&
+                    !seedRoom.players?.p2) {
+
+                    if (joiningRoomIds.has(roomId)) return;
+                    joiningRoomIds.add(roomId);
+
+                    try {
+                        const stake = Math.max(0, Math.min(3, Number(seedRoom.wagerPoints) || 0));
+                        const initialGameState = createNewRoundState(
+                            seedRoom.players.p1.id,
+                            userData.id,
+                            seedRoom.players.p1.id,
+                            { p1Score: 0, p2Score: 0 }
+                        );
+
+                        const txResult = await runTransaction(db, async (tx) => {
+                            const roomSnap = await tx.get(roomRef);
+                            if (!roomSnap.exists()) throw new Error('ROOM_GONE');
+
+                            const roomNow = roomSnap.data();
+                            if (roomNow.status !== 'WAITING' || roomNow.players?.p2) {
+                                throw new Error('ROOM_TAKEN');
+                            }
+
+                            const p1Id = roomNow.players?.p1?.id;
+                            const p2Id = userData.id;
+                            const p1Ref = doc(db, PLAYERS_COL, p1Id);
+                            const p2Ref = doc(db, PLAYERS_COL, p2Id);
+
+                            const p1Snap = await tx.get(p1Ref);
+                            const p2Snap = await tx.get(p2Ref);
+                            if (!p1Snap.exists() || !p2Snap.exists()) throw new Error('PLAYER_GONE');
+
+                            const p1Data = p1Snap.data();
+                            const p2Data = p2Snap.data();
+                            const p1Pts = Math.max(0, Number(p1Data.puntos) || 0);
+                            const p2Pts = Math.max(0, Number(p2Data.puntos) || 0);
+
+                            if (stake > 0 && (p1Pts < stake || p2Pts < stake)) {
+                                throw new Error('INSUFFICIENT_FUNDS');
+                            }
+
+                            if (stake > 0) {
+                                tx.update(p1Ref, { puntos: p1Pts - stake });
+                                tx.update(p2Ref, { puntos: p2Pts - stake });
+                            }
+
+                            tx.update(roomRef, {
+                                status: 'PLAYING',
+                                wagerPoints: stake,
+                                wagerPot: stake * 2,
+                                wagerLocked: stake > 0,
+                                wagerSettled: false,
+                                'players.p2': { id: p2Id, name: userData.nombre || userData.usuario, score: 0 },
+                                gameState: initialGameState
+                            });
+
+                            return {
+                                p1PtsAfter: p1Pts - stake,
+                                p2PtsAfter: p2Pts - stake,
+                                stake,
+                                p2Id
+                            };
+                        });
+
+                        if (userData?.id === txResult.p2Id) {
+                            userData.puntos = txResult.p2PtsAfter;
+                            setupUserUI();
+                        }
+                        lastBalanceSyncedRoomId = roomId;
+                    } catch (txErr) {
+                        const reason = txErr?.message || '';
+                        if (reason === 'INSUFFICIENT_FUNDS') {
+                            showBlitzToast("La apuesta supera los puntos disponibles de uno de los jugadores", "Apuesta");
+                        } else if (reason === 'ROOM_TAKEN') {
+                            showBlitzToast("Otro jugador ya tomó esta mesa", "Salón");
+                        } else if (reason !== 'ROOM_GONE') {
+                            console.error("Error al entrar y bloquear apuesta:", txErr);
+                            showBlitzToast("No se pudo abrir la partida", "Error");
+                        }
+                        return;
+                    } finally {
+                        joiningRoomIds.delete(roomId);
+                    }
+                }
+
+                activeRoomId = roomId;
+                lastGameRenderSignature = '';
+
+                if (roomUnsubscribe) roomUnsubscribe();
+
+                roomUnsubscribe = onSnapshot(roomRef, async (snap) => {
+                    if (!snap.exists()) {
+                        if (currentRoomState && currentRoomState.status !== 'FINISHED') {
+                            showBlitzToast("La mesa fue cerrada", "Salón");
+                            exitGameToLobby();
+                        }
+                        return;
+                    }
+
+                    const room = snap.data();
+                    currentRoomState = room;
+
+                    if (room.status === 'WAITING' &&
+                        room.players?.p1?.id === userData.id) {
+                        showScreen('screen-game');
+                        renderGameUI(room);
+                        return;
+                    }
+
+                    if (room.status === 'PLAYING') {
+                        showScreen('screen-game');
+                        if (room.wagerLocked && lastBalanceSyncedRoomId !== roomId) {
+                            lastBalanceSyncedRoomId = roomId;
+                            await syncCurrentUserFromFirestore();
+                        }
+                        renderGameUI(room);
+                    } else if (room.status === 'FINISHED' && !matchFinishedHandled) {
+                        matchFinishedHandled = true;
+                        await syncCurrentUserFromFirestore();
+                        handleMatchFinishedState(room);
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error entrando a sala:", err);
+                showBlitzToast("No se pudo entrar a la mesa", "Error");
+            }
+        }
+
+        // SISTEMA DE CONTROL DE INACTIVIDAD (AFK 40s -> Warning 20s)
+        function resetAfkTimer(isMyTurn) {
+            clearAfkTimers();
+            if (!isMyTurn || !currentRoomState || currentRoomState.status !== 'PLAYING') return;
+
+            idleTimer = setTimeout(() => {
+                triggerAfkWarningModal();
+            }, 40000); // 40 segundos
+        }
+
+        function clearAfkTimers() {
+            if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+            if (afkCountdownInterval) { clearInterval(afkCountdownInterval); afkCountdownInterval = null; }
+            document.getElementById('modal-afk-warning').classList.add('hidden');
+        }
+
+        function triggerAfkWarningModal() {
+            afkTimeRemaining = 20;
+            document.getElementById('afk-countdown-num').textContent = afkTimeRemaining;
+            document.getElementById('modal-afk-warning').classList.remove('hidden');
+
+            afkCountdownInterval = setInterval(async () => {
+                afkTimeRemaining--;
+                document.getElementById('afk-countdown-num').textContent = afkTimeRemaining;
+
+                if (afkTimeRemaining <= 0) {
+                    clearInterval(afkCountdownInterval);
+                    afkCountdownInterval = null;
+                    document.getElementById('modal-afk-warning').classList.add('hidden');
+                    await handleAfkTimeoutForfeit();
+                }
+            }, 1000);
+        }
+
+        function confirmStillHere() {
+            clearAfkTimers();
+            if (currentRoomState && currentRoomState.status === 'PLAYING') {
+                const gs = currentRoomState.gameState;
+                const myId = userData.id;
+                const isMyTurnToPlay = gs.turn === myId && !gs.pendingCall && gs.envidoState !== 'DECLARING_POINTS';
+                const isMyTurnToRespond = gs.pendingCall && gs.pendingCall.target === myId;
+                const isMyTurnToDeclareEnvido = gs.envidoState === 'DECLARING_POINTS' && 
+                    ((gs.envidoPointsStage === 'MANO' && gs.manoStarter === myId) || 
+                     (gs.envidoPointsStage === 'PIE' && gs.manoStarter !== myId));
+
+                resetAfkTimer(isMyTurnToPlay || isMyTurnToRespond || isMyTurnToDeclareEnvido);
+            }
+        }
+
+        async function handleAfkTimeoutForfeit() {
+            if (!activeRoomId || !currentRoomState || currentRoomState.status !== 'PLAYING') return;
+
+            const roomRef = doc(db, ROOMS_COL, activeRoomId);
+            const isP1 = currentRoomState.players.p1.id === userData.id;
+            const winnerId = isP1 ? (currentRoomState.players.p2?.id || '') : currentRoomState.players.p1.id;
+            const winnerName = isP1 ? (currentRoomState.players.p2?.name || 'Rival') : currentRoomState.players.p1.name;
+
+            const finalP1Score = isP1 ? currentRoomState.gameState.p1Score : currentRoomState.maxPoints;
+            const finalP2Score = !isP1 ? currentRoomState.gameState.p2Score : currentRoomState.maxPoints;
+
+            await recordMatchToTrucoLeague({
+                p1Id: currentRoomState.players.p1.id,
+                p1Name: currentRoomState.players.p1.name,
+                p2Id: currentRoomState.players.p2?.id || '',
+                p2Name: currentRoomState.players.p2?.name || 'Rival',
+                winnerId,
+                winnerName,
+                ptsWinner: currentRoomState.maxPoints,
+                ptsLoser: isP1 ? currentRoomState.gameState.p1Score : currentRoomState.gameState.p2Score,
+                wagerPoints: Number(currentRoomState.wagerPoints) || 0,
+                roomId: activeRoomId,
+                reason: 'INACTIVIDAD'
+            });
+
+            await updateDoc(roomRef, {
+                status: 'FINISHED',
+                reason: 'INACTIVITY',
+                winnerId: winnerId,
+                winnerName: winnerName,
+                forfeitedBy: userData.id,
+                "gameState.p1Score": finalP1Score,
+                "gameState.p2Score": finalP2Score
+            });
+
+            showMatchResultModal({
+                won: false,
+                title: 'DERROTA POR INACTIVIDAD',
+                desc: 'Se agotó el tiempo de respuesta. Le diste la victoria a tu rival.'
+            });
+        }
+
+        function renderGameUI(room) {
+            if (!room || !room.gameState) {
+                // Sala en espera: mostramos la mesa sin iniciar las reglas.
+                if (room?.status === 'WAITING') {
+                    document.getElementById('game-op-name').textContent = 'Esperando rival...';
+                    document.getElementById('game-me-name').textContent = userData?.nombre || userData?.usuario || 'Tú';
+                    document.getElementById('game-max-pts').textContent = room.maxPoints || 15;
+                    document.getElementById('game-wager-pot').textContent = room.wagerPoints ? room.wagerPoints * 2 : 0;
+                    document.getElementById('game-hand-status').textContent = 'Mesa abierta • esperando rival';
+                    document.getElementById('game-me-turn').classList.add('hidden');
+                    document.getElementById('game-op-turn').classList.add('hidden');
+                    document.getElementById('action-buttons-grid').innerHTML = `
+                        <div class="col-span-3 text-center py-2.5 text-[9px] text-amber-100/45 uppercase tracking-widest font-bar">
+                            <i class="fa-solid fa-hourglass-half mr-1"></i> La mesa ya está abierta
+                        </div>`;
+                    document.getElementById('envido-score-btn-container').classList.add('hidden');
+                    document.getElementById('mazo-container').classList.add('hidden');
+                    showScreen('screen-game');
+                }
+                return;
+            }
+            const gs = room.gameState;
+            const renderSignature = JSON.stringify({
+                status: room.status,
+                maxPoints: room.maxPoints,
+                wagerPoints: room.wagerPoints || 0,
+                wagerPot: room.wagerPot || 0,
+                wagerSettled: room.wagerSettled || false,
+                p1: room.players?.p1?.name,
+                p2: room.players?.p2?.name,
+                p1Score: gs.p1Score,
+                p2Score: gs.p2Score,
+                turn: gs.turn,
+                manoStarter: gs.manoStarter,
+                hands: gs.hands,
+                played: gs.played,
+                pendingCall: gs.pendingCall,
+                envidoState: gs.envidoState,
+                envidoPointsStage: gs.envidoPointsStage,
+                envidoCantedValues: gs.envidoCantedValues,
+                tricks: gs.tricks,
+                lastCantoTs: gs.lastCanto?.timestamp || null
+            });
+            if (renderSignature === lastGameRenderSignature) return;
+            lastGameRenderSignature = renderSignature;
+            const p1Id = room.players.p1.id;
+            const p2Id = room.players.p2?.id;
+            const isP1 = p1Id === userData.id;
+            const myId = userData.id;
+            const opId = isP1 ? p2Id : p1Id;
+
+            // HUD Score updates
+            document.getElementById('game-max-pts').textContent = room.maxPoints;
+            document.getElementById('game-me-name').textContent = isP1 ? room.players.p1.name : (room.players.p2?.name || 'Esperando');
+            document.getElementById('game-op-name').textContent = isP1 ? (room.players.p2?.name || 'Esperando rival...') : room.players.p1.name;
+            
+            document.getElementById('game-me-score').textContent = isP1 ? (gs.p1Score || 0) : (gs.p2Score || 0);
+            document.getElementById('game-op-score').textContent = isP1 ? (gs.p2Score || 0) : (gs.p1Score || 0);
+            const wagerPoints = Number(room.wagerPoints) || 0;
+            document.getElementById('game-wager-pot').textContent = Number(room.wagerPot || wagerPoints * 2);
+
+            // Hand Status info
+            document.getElementById('game-hand-status').textContent = `Mano de: ${gs.manoStarter === myId ? 'Tú' : 'Rival'}`;
+
+            // Turn Indicators
+            const isMyTurnToPlay = gs.turn === myId && !gs.pendingCall && gs.envidoState !== 'DECLARING_POINTS';
+            const isMyTurnToRespond = gs.pendingCall && gs.pendingCall.target === myId;
+            const isMyTurnToDeclareEnvido = gs.envidoState === 'DECLARING_POINTS' && 
+                ((gs.envidoPointsStage === 'MANO' && gs.manoStarter === myId) || 
+                 (gs.envidoPointsStage === 'PIE' && gs.manoStarter !== myId));
+
+            const isMyTurnOverall = isMyTurnToPlay || isMyTurnToRespond || isMyTurnToDeclareEnvido;
+
+            document.getElementById('game-me-turn').classList.toggle('hidden', !isMyTurnOverall);
+            document.getElementById('game-op-turn').classList.toggle('hidden', isMyTurnOverall);
+
+            // El botón MAZO depende estrictamente del turno del jugador.
+            // Puede usarse cuando es tu turno de jugar o cuando te toca responder
+            // un canto del rival; nunca durante el turno del contrario.
+            const mazoContainer = document.getElementById('mazo-container');
+            const canGoMazo = isMyTurnToPlay || isMyTurnToRespond;
+            mazoContainer.classList.toggle('hidden', !canGoMazo);
+
+            // Timer de Inactividad
+            resetAfkTimer(isMyTurnOverall);
+
+            // Botón de Abandono
+            const exitBtn = document.getElementById('btn-game-exit');
+            const exitIcon = document.getElementById('btn-game-exit-icon');
+            const exitText = document.getElementById('btn-game-exit-text');
+
+            if (!room.players.p2 || room.status === 'WAITING') {
+                exitBtn.className = "text-[10px] bg-amber-950/80 hover:bg-amber-900 border border-gold/50 text-amber-200 px-2 py-0.5 rounded flex items-center gap-1 transition-all font-bold";
+                exitIcon.className = "fa-solid fa-xmark text-[9px] text-gold";
+                exitText.textContent = "CANCELAR SALA";
+            } else {
+                exitBtn.className = "text-[10px] bg-red-950/80 hover:bg-red-900 border border-red-500/50 text-red-300 px-2 py-0.5 rounded flex items-center gap-1 transition-all font-bold";
+                exitIcon.className = "fa-solid fa-flag text-[9px]";
+                exitText.textContent = "ABANDONAR";
+            }
+
+            // 1. OPPONENT HIDDEN HAND CARDS
+            const opCardsHandContainer = document.getElementById('op-cards-hand');
+            opCardsHandContainer.innerHTML = '';
+            const opCardsInHandCount = gs.hands?.[opId]?.length || 0;
+
+            const backFragment = document.createDocumentFragment();
+            for (let i = 0; i < opCardsInHandCount; i++) {
+                const cardBack = document.createElement('div');
+                cardBack.className = "card-back";
+                cardBack.style.animationDelay = `${i * 45}ms`;
+                backFragment.appendChild(cardBack);
+            }
+            opCardsHandContainer.appendChild(backFragment);
+
+            // 2. PLAYED CARDS CENTRAL TABLE SYNC
+            const opPlayedCardsContainer = document.getElementById('op-played-cards');
+            const mePlayedCardsContainer = document.getElementById('me-played-cards');
+            opPlayedCardsContainer.innerHTML = '';
+            mePlayedCardsContainer.innerHTML = '';
+
+            const opPlayed = gs.played?.[opId] || [];
+            const mePlayed = gs.played?.[myId] || [];
+
+            const opPlayedFrag = document.createDocumentFragment();
+            opPlayed.forEach((card, idx) => {
+                const el = createStaticCardDOM(card, false, false, null, true);
+                el.style.animationDelay = `${idx * 55}ms`;
+                opPlayedFrag.appendChild(el);
+            });
+            opPlayedCardsContainer.appendChild(opPlayedFrag);
+
+            const mePlayedFrag = document.createDocumentFragment();
+            mePlayed.forEach((card, idx) => {
+                const el = createStaticCardDOM(card, false, false, null, true);
+                el.style.animationDelay = `${idx * 55}ms`;
+                mePlayedFrag.appendChild(el);
+            });
+            mePlayedCardsContainer.appendChild(mePlayedFrag);
+
+            // 3. MIS CARTAS EN MANO
+            const myHandContainer = document.getElementById('me-cards-hand');
+            myHandContainer.innerHTML = '';
+            const myCards = gs.hands?.[myId] || [];
+            const myHandFrag = document.createDocumentFragment();
+
+            myCards.forEach((card, idx) => {
+                const cardDOM = createStaticCardDOM(card, true, isMyTurnToPlay, () => playCard(idx), false);
+                cardDOM.style.setProperty('--deal-rot', `${idx % 2 === 0 ? -1.1 : 1.1}deg`);
+                cardDOM.style.animationDelay = `${idx * 60}ms`;
+                myHandFrag.appendChild(cardDOM);
+            });
+            myHandContainer.appendChild(myHandFrag);
+
+            // Toast Alerts
+            if (gs.lastCanto && (Date.now() - gs.lastCanto.timestamp < 3200)) {
+                showBlitzToast(gs.lastCanto.text, gs.lastCanto.playerName);
+            }
+
+            // FLUJO DE CANTADO DE TANTOS DE ENVIDO SEGÚN TURNO DE MANO Y PIE
+            const envidoContainer = document.getElementById('envido-score-btn-container');
+            if (gs.envidoState === 'DECLARING_POINTS') {
+                const isManoTurn = (gs.envidoPointsStage === 'MANO' && gs.manoStarter === myId);
+                const isPieTurn = (gs.envidoPointsStage === 'PIE' && gs.manoStarter !== myId);
+
+                if (isManoTurn) {
+                    const envVal = Number(gs.envidoScore?.[myId]) || 0;
+                    document.getElementById('btn-tantos-text').textContent = `TENGO ${envVal} DE ENVIDO`;
+                    envidoContainer.classList.remove('hidden');
+                } else if (isPieTurn) {
+                    const envVal = Number(gs.envidoScore?.[myId]) || 0;
+                    const manoId = gs.manoStarter;
+                    const manoVal = Number(gs.envidoCantedValues?.MANO ?? gs.envidoScore?.[manoId] ?? 0);
+                    document.getElementById('btn-tantos-text').textContent = `TENGO ${envVal} DE ENVIDO`;
+
+                    const tantosBtn = document.getElementById('btn-cantar-tantos-envido');
+                    const buenasBtn = document.getElementById('btn-son-buenas');
+
+                    envidoContainer.classList.remove('hidden');
+
+                    // "SON BUENAS" solo aparece cuando el tanto de la mano supera
+                    // al del pie. Es una concesión sin revelar los tantos propios.
+                    if (buenasBtn) {
+                        buenasBtn.classList.toggle('hidden', manoVal <= envVal);
+                        buenasBtn.onclick = () => cantarTantosEnvido('SON_BUENAS');
+                    }
+                    if (tantosBtn) {
+                        tantosBtn.onclick = () => cantarTantosEnvido('CANTAR');
+                    }
+                } else {
+                    envidoContainer.classList.add('hidden');
+                }
+            } else {
+                envidoContainer.classList.add('hidden');
+            }
+
+            const p1PlayedCount = gs.played?.[p1Id]?.length || 0;
+            const p2PlayedCount = gs.played?.[p2Id]?.length || 0;
+            
+            // EL ENVIDO SOLO SE HABILITA MIENTRAS AL MENOS UNO NO HAYA JUGADO SU PRIMERA CARTA
+            const isFirstRoundActive = (gs.tricks?.length === 0) && (p1PlayedCount === 0 || p2PlayedCount === 0);
+
+            renderActionButtons(room, isFirstRoundActive);
+        }
+
+        function createStaticCardDOM(card, isInteractable, isTurnActive, onClickHandler, isPlayedOnTable = false) {
+            const cardEl = document.createElement('div');
+            const suitClass = getSuitClass(card.suit);
+            const label = getCardVisualLabel(card.value);
+            const disabledClass = (isInteractable && !isTurnActive) ? "disabled-card" : "";
+            const cardBaseStyle = isPlayedOnTable ? "played-card" : "card-truco";
+
+            cardEl.className = `${cardBaseStyle} ${suitClass} ${disabledClass} ${isInteractable && isTurnActive ? 'cursor-pointer' : ''}`;
+            cardEl.setAttribute('role', isInteractable ? 'button' : 'img');
+            cardEl.setAttribute('aria-label', `${label} de ${card.suit}`);
+
+            cardEl.innerHTML = `
+                <div class="card-corner">
+                    <span class="card-value ${card.value >= 10 ? 'small' : ''}">${label}</span>
+                    <span class="card-suit">${getSuitIcon(card.suit)}</span>
+                </div>
+                <div class="card-center">${buildCardCenter(card)}</div>
+                <div class="card-corner bottom">
+                    <span class="card-value ${card.value >= 10 ? 'small' : ''}">${label}</span>
+                    <span class="card-suit">${getSuitIcon(card.suit)}</span>
+                </div>
+            `;
+
+            if (isInteractable && isTurnActive && onClickHandler) {
+                cardEl.tabIndex = 0;
+                cardEl.onclick = onClickHandler;
+                cardEl.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onClickHandler();
+                    }
+                };
+            }
+
+            return cardEl;
+        }
+
+        // RENDERING DE CANTOS
+        function renderActionButtons(room, isFirstRoundActive) {
+            const grid = document.getElementById('action-buttons-grid');
+            grid.innerHTML = '';
+            const gs = room.gameState;
+            const myId = userData.id;
+
+            if (gs.envidoState === 'DECLARING_POINTS') return;
+
+            const isMyTurnToRespond = gs.pendingCall && gs.pendingCall.target === myId;
+            const myPlayedCount = gs.played?.[myId]?.length || 0;
+            const canOpenOrAnswerEnvido = isFirstRoundActive && myPlayedCount === 0 &&
+                gs.envidoState === 'AVAILABLE' && gs.trucoValue === 1;
+
+            if (isMyTurnToRespond) {
+                const call = gs.pendingCall;
+
+                const btnQuiero = createActionButton('QUIERO', () => respondCall('QUIERO'), 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-400');
+                const btnNoQuiero = createActionButton('NO QUIERO', () => respondCall('NO_QUIERO'), 'bg-red-900 hover:bg-red-800 text-white border-red-500');
+                grid.appendChild(btnQuiero);
+                grid.appendChild(btnNoQuiero);
+
+                // "El envido está primero": si están respondiendo un Truco y todavía
+                // no tiraron su primera carta, pueden iniciar cualquier Envido.
+                if (call.type === 'truco' && canOpenOrAnswerEnvido) {
+                    grid.appendChild(createActionButton('ENVIDO', () => cantAction('envido'), 'bg-wood-700 text-amber-100 border-gold/40'));
+                    grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold/40'));
+                    grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
+                    return;
+                }
+
+                // Reglas de subida del Envido, según la cadena actual.
+                if (call.type === 'envido') {
+                    grid.appendChild(createActionButton('ENVIDO + ENVIDO', () => cantAction('envido_envido'), 'bg-wood-700 text-amber-100 border-gold/40'));
+                    grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold/40'));
+                    grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
+                } else if (call.type === 'envido_envido') {
+                    grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 text-amber-100 border-gold/40'));
+                    grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
+                } else if (call.type === 'real_envido') {
+                    grid.appendChild(createActionButton('FALTA ENVIDO', () => cantAction('falta_envido'), 'bg-red-950 text-red-200 border-red-500'));
+                } else if (call.type === 'retruco') {
+                    grid.appendChild(createActionButton('VALE CUATRO', () => cantAction('valecuatro'), 'btn-bar-gold'));
+                } else if (call.type === 'truco') {
+                    grid.appendChild(createActionButton('RETRUCO', () => cantAction('retruco'), 'btn-bar-gold'));
+                }
+                return;
+            }
+
+            const isMyTurnToPlay = gs.turn === myId && !gs.pendingCall;
+
+            // Puede abrir Envido la MANO o el PIE, pero solo si EL MISMO jugador
+            // todavía no jugó su primera carta. Así el PIE conserva su oportunidad
+            // después de que la MANO haya jugado.
+            if (canOpenOrAnswerEnvido && isMyTurnToPlay) {
+                grid.appendChild(createActionButton('ENVIDO', () => cantAction('envido'), 'bg-wood-700 hover:bg-wood-600 text-amber-100 border-gold/40'));
+                grid.appendChild(createActionButton('REAL ENVIDO', () => cantAction('real_envido'), 'bg-wood-800 hover:bg-wood-700 text-amber-100 border-gold/40'));
+                grid.appendChild(createActionButton('FALTA E.', () => cantAction('falta_envido'), 'bg-red-950 hover:bg-red-900 text-red-200 border-red-500/50'));
+            }
+
+            // Acciones de Truco.
+            const trucoLevel = gs.trucoState;
+            let trucoLabel = 'TRUCO';
+            let trucoAction = 'truco';
+
+            if (trucoLevel === 'TRUCO' && gs.trucoCantador !== myId) {
+                trucoLabel = 'RETRUCO';
+                trucoAction = 'retruco';
+            } else if (trucoLevel === 'RETRUCO' && gs.trucoCantador !== myId) {
+                trucoLabel = 'VALE 4';
+                trucoAction = 'valecuatro';
+            }
+
+            const btnTruco = createActionButton(
+                trucoLabel,
+                () => cantAction(trucoAction),
+                'btn-bar-gold',
+                canOpenOrAnswerEnvido ? 1 : 3
+            );
+            btnTruco.disabled = !isMyTurnToPlay || (trucoLevel === 'VALECUATRO') || (gs.trucoCantador === myId);
+            grid.appendChild(btnTruco);
+        }
+
+        function createActionButton(label, onClick, customClass, colSpan = 1) {
+            const btn = document.createElement('button');
+            const spanClass = colSpan > 1 ? `col-span-${colSpan}` : '';
+            btn.className = `${customClass} ${spanClass} py-2.5 rounded-xl border font-black uppercase text-xs shadow-md transition-all flex items-center justify-center gap-1`;
+            btn.textContent = label;
+            btn.onclick = onClick;
+            return btn;
+        }
+
+        async function playCard(cardIdx) {
+            if (isActionPending || !activeRoomId || !currentRoomState || currentRoomState.status !== 'PLAYING') return;
+            const gs = currentRoomState.gameState;
+            if (!gs || gs.turn !== userData.id || gs.pendingCall || gs.envidoState === 'DECLARING_POINTS') return;
+
+            isActionPending = true;
+            try {
+                const myId = userData.id;
+                const myHand = gs.hands[myId];
+                if (!myHand || !myHand[cardIdx]) return;
+
+                const playedCard = myHand.splice(cardIdx, 1)[0];
+                if (!gs.played[myId]) gs.played[myId] = [];
+                gs.played[myId].push(playedCard);
+
+                const p1Id = currentRoomState.players.p1.id;
+                const p2Id = currentRoomState.players.p2.id;
+                const isP1 = p1Id === myId;
+                const opId = isP1 ? p2Id : p1Id;
+
+                const myPlayedCount = gs.played[myId].length;
+                const opPlayedCount = (gs.played[opId] || []).length;
+
+                // El Envido sigue disponible mientras al menos uno de los dos
+                // jugadores todavía no haya jugado su primera carta. Esto permite
+                // que el PIE cante Envido después de que la MANO haya jugado su carta.
+                if (gs.envidoState === 'AVAILABLE' && myPlayedCount >= 1 && opPlayedCount >= 1) {
+                    gs.envidoState = 'RESOLVED';
+                    gs.envidoCallUsed = true;
+                }
+
+                if (myPlayedCount === opPlayedCount) {
+                    const myLastCard = gs.played[myId][myPlayedCount - 1];
+                    const opLastCard = gs.played[opId][opPlayedCount - 1];
+
+                    const myPower = getCardPower(myLastCard);
+                    const opPower = getCardPower(opLastCard);
+
+                    let trickWinner = 'TIE';
+                    if (myPower > opPower) trickWinner = myId;
+                    else if (opPower > myPower) trickWinner = opId;
+
+                    gs.tricks.push({ winner: trickWinner });
+
+                    const handResult = evaluateHandWinner(gs.tricks, gs.manoStarter, p1Id, p2Id);
+                    
+                    if (handResult.finished) {
+                        await resolveHandWinner(handResult.winner, gs);
+                        return;
+                    } else {
+                        gs.turn = trickWinner === 'TIE' ? gs.manoStarter : trickWinner;
+                    }
+                } else {
+                    gs.turn = opId;
+                }
+
+                // Chequeo de seguridad de puntaje
+                if (gs.p1Score >= currentRoomState.maxPoints || gs.p2Score >= currentRoomState.maxPoints) {
+                    const wId = gs.p1Score >= currentRoomState.maxPoints ? p1Id : p2Id;
+                    await resolveHandWinner(wId, gs);
+                    return;
+                }
+
+                await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": gs });
+            } finally {
+                setTimeout(() => { isActionPending = false; }, 300);
+            }
+        }
+
+        function evaluateHandWinner(tricks, manoStarter, p1Id, p2Id) {
+            if (tricks.length === 0) return { finished: false };
+
+            const wins = { [p1Id]: 0, [p2Id]: 0, TIE: 0 };
+            tricks.forEach(t => wins[t.winner]++);
+
+            if (wins[p1Id] === 2) return { finished: true, winner: p1Id };
+            if (wins[p2Id] === 2) return { finished: true, winner: p2Id };
+
+            if (tricks.length === 2 && wins.TIE === 1) {
+                const nonTie = tricks.find(t => t.winner !== 'TIE');
+                if (nonTie) return { finished: true, winner: nonTie.winner };
+            }
+
+            if (tricks.length === 3) {
+                if (tricks[0].winner === 'TIE' && tricks[1].winner === 'TIE' && tricks[2].winner === 'TIE') {
+                    return { finished: true, winner: manoStarter };
+                }
+                if (tricks[0].winner === 'TIE') {
+                    const win2 = tricks[1].winner !== 'TIE' ? tricks[1].winner : tricks[2].winner;
+                    return { finished: true, winner: win2 !== 'TIE' ? win2 : manoStarter };
+                }
+                if (tricks[1].winner === 'TIE') {
+                    return { finished: true, winner: tricks[0].winner };
+                }
+                if (tricks[2].winner === 'TIE') {
+                    return { finished: true, winner: tricks[0].winner };
+                }
+            }
+
+            return { finished: false };
+        }
+
+        // VERIFICACIÓN DE FINALIZACIÓN Y CIERRE AUTOMÁTICO INMEDIATO
+        async function resolveHandWinner(winnerId, gs) {
+            clearAfkTimers();
+            const p1Id = currentRoomState.players.p1.id;
+            const p2Id = currentRoomState.players.p2.id;
+            const maxPts = currentRoomState.maxPoints;
+
+            const trucoPts = gs.trucoValue || 1;
+
+            if (winnerId === p1Id) gs.p1Score += trucoPts;
+            else if (winnerId === p2Id) gs.p2Score += trucoPts;
+
+            // Evaluado tras sumar los puntos de la mano
+            if (gs.p1Score >= maxPts || gs.p2Score >= maxPts) {
+                let matchWinnerId = gs.p1Score >= maxPts ? p1Id : p2Id;
+                const matchWinnerName = matchWinnerId === p1Id ? currentRoomState.players.p1.name : currentRoomState.players.p2.name;
+
+                const ptsWinner = matchWinnerId === p1Id ? gs.p1Score : gs.p2Score;
+                const ptsLoser = matchWinnerId === p1Id ? gs.p2Score : gs.p1Score;
+
+                await recordMatchToTrucoLeague({
+                    p1Id,
+                    p1Name: currentRoomState.players.p1.name,
+                    p2Id,
+                    p2Name: currentRoomState.players.p2.name,
+                    winnerId: matchWinnerId,
+                    winnerName: matchWinnerName,
+                    ptsWinner,
+                    ptsLoser,
+                    wagerPoints: Number(currentRoomState.wagerPoints) || 0,
+                    roomId: activeRoomId,
+                    reason: 'VICTORIA'
+                });
+
+                await updateDoc(doc(db, ROOMS_COL, activeRoomId), {
+                    status: 'FINISHED',
+                    winnerId: matchWinnerId,
+                    winnerName: matchWinnerName,
+                    "gameState.p1Score": gs.p1Score,
+                    "gameState.p2Score": gs.p2Score
+                });
+            } else {
+                const nextManoStarter = gs.manoStarter === p1Id ? p2Id : p1Id;
+                const newRoundGS = createNewRoundState(p1Id, p2Id, nextManoStarter, {
+                    p1Score: gs.p1Score,
+                    p2Score: gs.p2Score
+                });
+
+                await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": newRoundGS });
+            }
+        }
+
+        // MODAL Y ACCIÓN DE IRSE AL MAZO
+        function openMazoModal() {
+            if (!currentRoomState || currentRoomState.status !== 'PLAYING' || !currentRoomState.gameState) return;
+            const gs = currentRoomState.gameState;
+            const myId = userData?.id;
+            const isMyTurnToPlay = gs.turn === myId && !gs.pendingCall && gs.envidoState !== 'DECLARING_POINTS';
+            const isMyTurnToRespond = gs.pendingCall?.target === myId;
+            if (!isMyTurnToPlay && !isMyTurnToRespond) return;
+            document.getElementById('modal-confirm-mazo').classList.remove('hidden');
+        }
+
+        function closeMazoModal() {
+            document.getElementById('modal-confirm-mazo').classList.add('hidden');
+        }
+
+       async function confirmIrseAlMazo() {
+            closeMazoModal();
+            if (isActionPending || !activeRoomId || !currentRoomState || currentRoomState.status !== 'PLAYING') return;
+            const gs = currentRoomState.gameState;
+            if (!gs) return;
+
+            isActionPending = true;
+            try {
+                const myId = userData.id;
+                const p1Id = currentRoomState.players.p1.id;
+                const p2Id = currentRoomState.players.p2.id;
+                const opId = myId === p1Id ? p2Id : p1Id;
+
+                // Protección adicional: aunque el botón esté oculto, Firestore/estado
+                // no debe aceptar un MAZO fuera del turno del jugador.
+                const isMyTurnToPlay = gs.turn === myId && !gs.pendingCall && gs.envidoState !== 'DECLARING_POINTS';
+                const isMyTurnToRespond = gs.pendingCall?.target === myId;
+                if (!isMyTurnToPlay && !isMyTurnToRespond) return;
+
+                showBlitzToast("¡SE FUE AL MAZO!", userData.nombre || userData.usuario);
+                gs.pendingCall = null;
+
+                if (gs.envidoState === 'CALLED' && gs.envidoChain?.length > 0) {
+                    const envPoints = calculateEnvidoChainPoints(gs.envidoChain, false, currentRoomState.maxPoints, gs.p1Score, gs.p2Score);
+                    if (opId === p1Id) gs.p1Score += envPoints;
+                    else gs.p2Score += envPoints;
+                    gs.envidoState = 'DECLINED';
+                }
+
+                // --- REGLA CORREGIDA ---
+                // Si el jugador que se va al mazo es el MANO de la ronda y NO ha tirado NINGUNA carta a la mesa:
+                const isMano = (gs.manoStarter === myId);
+                const cardsPlayedByMe = gs.played?.[myId]?.length || 0;
+
+                if (isMano && cardsPlayedByMe === 0 && gs.envidoState === 'AVAILABLE') {
+                    // La MANO se va al mazo sin haber jugado ninguna carta y sin haber iniciado el Envido.
+                    // El PIE pierde su oportunidad de cantar Envido, por eso recibe 2 puntos.
+                    if (opId === p1Id) {
+                        gs.p1Score += 2;
+                    } else {
+                        gs.p2Score += 2;
+                    }
+                    
+                    // Verificación si con estos 2 puntos se alcanza la puntuación máxima
+                    if (gs.p1Score >= currentRoomState.maxPoints || gs.p2Score >= currentRoomState.maxPoints) {
+                        const winnerId = gs.p1Score >= currentRoomState.maxPoints ? p1Id : p2Id;
+                        await resolveHandWinner(winnerId, gs);
+                        return;
+                    }
+
+                    // Pasar a la siguiente mano normalmente
+                    const nextManoStarter = gs.manoStarter === p1Id ? p2Id : p1Id;
+                    const newRoundGS = createNewRoundState(p1Id, p2Id, nextManoStarter, {
+                        p1Score: gs.p1Score,
+                        p2Score: gs.p2Score
+                    });
+                    await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": newRoundGS });
+                } else {
+                    // Comportamiento regular si ya tiró cartas o no era la mano
+                    await resolveHandWinner(opId, gs);
+                }
+            } finally {
+                setTimeout(() => { isActionPending = false; }, 300);
+            }
+        }
+        
+        // MANEJO DE CANTOS
+        async function cantAction(type) {
+            if (isActionPending || !activeRoomId || !currentRoomState ||
+                currentRoomState.status !== 'PLAYING') return;
+
+            const gs = currentRoomState.gameState;
+            if (!gs) return;
+
+            const myId = userData.id;
+            const p1Id = currentRoomState.players.p1.id;
+            const p2Id = currentRoomState.players.p2.id;
+            const opId = myId === p1Id ? p2Id : p1Id;
+
+            const myPlayedCount = gs.played?.[myId]?.length || 0;
+            const opPlayedCount = gs.played?.[opId]?.length || 0;
+            const firstTrick = (gs.tricks?.length || 0) === 0;
+            const envidoTypes = ['envido', 'real_envido', 'falta_envido'];
+            const isRaise = ['envido_envido'].includes(type) || envidoTypes.includes(type);
+
+            // Apertura de Envido: solo el jugador que aún no tiró su primera carta
+            // puede iniciarlo. Esto permite al PIE cantar después de la carta de la MANO.
+            const isInitialEnvido = envidoTypes.includes(type) &&
+                !gs.pendingCall &&
+                gs.envidoState === 'AVAILABLE' &&
+                !gs.envidoCallUsed &&
+                firstTrick &&
+                myPlayedCount === 0;
+
+            // Respuesta al Truco con Envido ("el envido está primero").
+            const envidoOverTruco = envidoTypes.includes(type) &&
+                gs.pendingCall?.type === 'truco' &&
+                gs.envidoState === 'AVAILABLE' &&
+                !gs.envidoCallUsed &&
+                firstTrick &&
+                myPlayedCount === 0;
+
+            // Subidas legales de una propuesta de Envido ya existente.
+            const currentChain = Array.isArray(gs.envidoChain) ? gs.envidoChain : [];
+            const canRaiseEnvido = gs.pendingCall && gs.pendingCall.target === myId &&
+                gs.envidoState === 'CALLED' && currentChain.length > 0;
+
+            let newChain = null;
+            if (isInitialEnvido || envidoOverTruco) {
+                newChain = [type];
+            } else if (canRaiseEnvido) {
+                const callType = gs.pendingCall.type;
+                if (callType === 'envido' && type === 'envido_envido') {
+                    newChain = [...currentChain, 'envido'];
+                } else if ((callType === 'envido' || callType === 'envido_envido') && type === 'real_envido') {
+                    newChain = [...currentChain, 'real_envido'];
+                } else if (['envido', 'envido_envido', 'real_envido'].includes(callType) && type === 'falta_envido') {
+                    newChain = [...currentChain, 'falta_envido'];
+                }
+            }
+
+            if (envidoTypes.includes(type) || type === 'envido_envido') {
+                if (!newChain) return;
+                if (gs.trucoValue > 1) return;
+
+                isActionPending = true;
+                try {
+                    if (isInitialEnvido || envidoOverTruco) gs.envidoCallUsed = true;
+                    gs.envidoChain = newChain;
+                    gs.envidoState = 'CALLED';
+
+                    // Si había un Truco pendiente, lo pausamos y lo retomamos al cerrar Envido.
+                    if (gs.pendingCall?.type === 'truco') {
+                        gs.deferredTrucoCall = { ...gs.pendingCall };
+                    }
+
+                    const textByType = {
+                        envido: '¡ENVIDO!',
+                        envido_envido: '¡ENVIDO Y ENVIDO!',
+                        real_envido: '¡REAL ENVIDO!',
+                        falta_envido: '¡FALTA ENVIDO!'
+                    };
+
+                    gs.lastCanto = {
+                        player: myId,
+                        playerName: userData.nombre || userData.usuario,
+                        text: textByType[type] || '¡ENVIDO!',
+                        timestamp: Date.now()
+                    };
+
+                    gs.pendingCall = {
+                        type: type,
+                        caller: myId,
+                        target: opId
+                    };
+
+                    await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": gs });
+                } finally {
+                    setTimeout(() => { isActionPending = false; }, 300);
+                }
+                return;
+            }
+
+            // Truco / Retruco / Vale Cuatro.
+            if (!['truco', 'retruco', 'valecuatro'].includes(type)) return;
+            const isMyTurnToPlay = gs.turn === myId && !gs.pendingCall;
+            if (!isMyTurnToPlay) return;
+            if (type === 'truco' && gs.trucoState !== 'NONE') return;
+            if (type === 'retruco' && gs.trucoState !== 'TRUCO') return;
+            if (type === 'valecuatro' && gs.trucoState !== 'RETRUCO') return;
+
+            isActionPending = true;
+            try {
+                const textByType = {
+                    truco: '¡TRUCO!',
+                    retruco: '¡QUIERO RETRUCO!',
+                    valecuatro: '¡VALE CUATRO!'
+                };
+
+                gs.lastCanto = {
+                    player: myId,
+                    playerName: userData.nombre || userData.usuario,
+                    text: textByType[type],
+                    timestamp: Date.now()
+                };
+
+                gs.pendingCall = { type, caller: myId, target: opId };
+                if (type === 'truco') {
+                    gs.trucoState = 'TRUCO';
+                    gs.trucoCantador = myId;
+                } else if (type === 'retruco') {
+                    gs.trucoState = 'RETRUCO';
+                    gs.trucoCantador = myId;
+                } else if (type === 'valecuatro') {
+                    gs.trucoState = 'VALECUATRO';
+                    gs.trucoCantador = myId;
+                }
+
+                await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": gs });
+            } finally {
+                setTimeout(() => { isActionPending = false; }, 300);
+            }
+        }
+
+        async function restoreDeferredTrucoCall(gs) {
+            if (!gs.deferredTrucoCall) return;
+            gs.pendingCall = gs.deferredTrucoCall;
+            gs.deferredTrucoCall = null;
+            gs.trucoState = 'TRUCO';
+            gs.trucoCantador = gs.pendingCall.caller;
+            gs.trucoValue = 1;
+        }
+
+        async function respondCall(response) {
+            if (isActionPending || !activeRoomId || !currentRoomState ||
+                currentRoomState.status !== 'PLAYING') return;
+
+            const gs = currentRoomState.gameState;
+            if (!gs || !gs.pendingCall) return;
+
+            isActionPending = true;
+            try {
+                const call = gs.pendingCall;
+                const myId = userData.id;
+                const p1Id = currentRoomState.players.p1.id;
+                const p2Id = currentRoomState.players.p2.id;
+                const callerId = call.caller;
+
+                gs.pendingCall = null;
+
+                if (['envido', 'envido_envido', 'real_envido', 'falta_envido'].includes(call.type)) {
+                    const chain = gs.envidoChain || [call.type];
+                    const maxPts = currentRoomState.maxPoints;
+
+                    if (response === 'QUIERO') {
+                        gs.envidoState = 'DECLARING_POINTS';
+                        gs.envidoPointsStage = 'MANO';
+                        gs.envidoCantedValues = {};
+                        gs.envidoPieCanSayBuenas = false;
+
+                        gs.lastCanto = {
+                            player: myId,
+                            playerName: userData.nombre || userData.usuario,
+                            text: "¡ENVIDO QUERIDO!",
+                            timestamp: Date.now()
+                        };
+                    } else {
+                        gs.envidoState = 'DECLINED';
+
+                        const envPts = calculateEnvidoChainPoints(
+                            chain, false, maxPts, gs.p1Score, gs.p2Score
+                        );
+
+                        if (callerId === p1Id) gs.p1Score += envPts;
+                        else gs.p2Score += envPts;
+
+                        gs.lastCanto = {
+                            player: myId,
+                            playerName: userData.nombre || userData.usuario,
+                            text: `NO QUIERO ENVIDO (+${envPts} pts)`,
+                            timestamp: Date.now()
+                        };
+
+                        if (gs.p1Score >= maxPts || gs.p2Score >= maxPts) {
+                            const wId = gs.p1Score >= maxPts ? p1Id : p2Id;
+                            await resolveHandWinner(wId, gs);
+                            return;
+                        }
+
+                        // Envido rechazado: no vuelve a estar disponible en esta mano.
+                        if (gs.deferredTrucoCall) await restoreDeferredTrucoCall(gs);
+                    }
+                } else {
+                    if (response === 'QUIERO') {
+                        if (call.type === 'truco') gs.trucoValue = 2;
+                        if (call.type === 'retruco') gs.trucoValue = 3;
+                        if (call.type === 'valecuatro') gs.trucoValue = 4;
+
+                        // Una vez aceptado el truco, el envido queda definitivamente cerrado.
+                        gs.envidoState = gs.envidoState === 'AVAILABLE'
+                            ? 'RESOLVED'
+                            : gs.envidoState;
+
+                        gs.lastCanto = {
+                            player: myId,
+                            playerName: userData.nombre || userData.usuario,
+                            text: "¡QUIERO!",
+                            timestamp: Date.now()
+                        };
+                    } else {
+                        const pointsForCaller = gs.trucoValue || 1;
+                        if (callerId === p1Id) gs.p1Score += pointsForCaller;
+                        else gs.p2Score += pointsForCaller;
+
+                        gs.trucoState = 'NONE';
+                        gs.trucoCantador = null;
+                        gs.trucoValue = 1;
+                        await resolveHandWinner(callerId, gs);
+                        return;
+                    }
+                }
+
+                await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": gs });
+            } finally {
+                setTimeout(() => { isActionPending = false; }, 300);
+            }
+        }
+
+        // DECLARACIÓN DE TANTOS DE ENVIDO
+        async function cantarTantosEnvido(choice = 'CANTAR') {
+            if (isActionPending || !activeRoomId || !currentRoomState ||
+                currentRoomState.status !== 'PLAYING') return;
+
+            const gs = currentRoomState.gameState;
+            if (!gs || gs.envidoState !== 'DECLARING_POINTS') return;
+
+            isActionPending = true;
+            try {
+                const myId = userData.id;
+                const myEnvScore = Number(gs.envidoScore?.[myId]) || 0;
+                const p1Id = currentRoomState.players.p1.id;
+                const p2Id = currentRoomState.players.p2.id;
+                const isMano = gs.manoStarter === myId;
+
+                if (!gs.envidoCantedValues) gs.envidoCantedValues = {};
+
+                // MANO siempre declara primero.
+                if (gs.envidoPointsStage === 'MANO' && isMano) {
+                    gs.envidoCantedValues.MANO = myEnvScore;
+                    gs.envidoPointsStage = 'PIE';
+                    gs.envidoPieCanSayBuenas = false;
+                    gs.lastCanto = {
+                        player: myId,
+                        playerName: userData.nombre || userData.usuario,
+                        text: `¡TENGO ${myEnvScore}!`,
+                        timestamp: Date.now()
+                    };
+                    await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": gs });
+                    return;
+                }
+
+                // PIE declara o concede con "SON BUENAS".
+                if (gs.envidoPointsStage === 'PIE' && !isMano) {
+                    const manoId = gs.manoStarter;
+                    const pieId = manoId === p1Id ? p2Id : p1Id;
+                    const manoVal = Number(gs.envidoCantedValues.MANO ?? gs.envidoScore?.[manoId] ?? 0);
+                    const pieVal = myEnvScore;
+
+                    if (choice === 'SON_BUENAS') {
+                        // Solo es una opción válida si la mano ya mostró un valor superior.
+                        if (manoVal <= pieVal) return;
+
+                        gs.envidoState = 'RESOLVED';
+                        gs.envidoPointsStage = null;
+                        gs.envidoPieCanSayBuenas = false;
+
+                        const envPts = calculateEnvidoChainPoints(gs.envidoChain, true,
+                            currentRoomState.maxPoints, gs.p1Score, gs.p2Score);
+
+                        if (manoId === p1Id) gs.p1Score += envPts;
+                        else gs.p2Score += envPts;
+
+                        gs.lastCanto = {
+                            player: myId,
+                            playerName: userData.nombre || userData.usuario,
+                            text: "¡SON BUENAS!",
+                            timestamp: Date.now()
+                        };
+                    } else {
+                        gs.envidoCantedValues.PIE = pieVal;
+                        gs.envidoState = 'RESOLVED';
+                        gs.envidoPointsStage = null;
+                        gs.envidoPieCanSayBuenas = false;
+
+                        // En empate gana mano.
+                        const envWinner = pieVal > manoVal ? pieId : manoId;
+                        const envPts = calculateEnvidoChainPoints(gs.envidoChain, true,
+                            currentRoomState.maxPoints, gs.p1Score, gs.p2Score);
+
+                        if (envWinner === p1Id) gs.p1Score += envPts;
+                        else gs.p2Score += envPts;
+
+                        const winnerName = envWinner === p1Id
+                            ? currentRoomState.players.p1.name
+                            : currentRoomState.players.p2.name;
+
+                        gs.lastCanto = {
+                            player: myId,
+                            playerName: userData.nombre || userData.usuario,
+                            text: `¡TENGO ${pieVal}!`,
+                            timestamp: Date.now()
+                        };
+
+                        setTimeout(() => {
+                            showBlitzToast(
+                                `¡GANA ENVIDO ${winnerName}! (+${envPts} pts)`,
+                                `Mano ${manoVal} / Pie ${pieVal}`
+                            );
+                        }, 250);
+                    }
+
+                    if (gs.p1Score >= currentRoomState.maxPoints || gs.p2Score >= currentRoomState.maxPoints) {
+                        const wId = gs.p1Score >= currentRoomState.maxPoints ? p1Id : p2Id;
+                        await resolveHandWinner(wId, gs);
+                        return;
+                    }
+
+                    if (gs.envidoState === 'RESOLVED' && gs.envidoPointsStage === null && gs.deferredTrucoCall) {
+                        await restoreDeferredTrucoCall(gs);
+                    }
+
+                    await updateDoc(doc(db, ROOMS_COL, activeRoomId), { "gameState": gs });
+                }
+            } finally {
+                setTimeout(() => { isActionPending = false; }, 400);
+            }
+        }
+
+        function showBlitzToast(msg, subText = '') {
+            const toast = document.getElementById('blitz-toast');
+            document.getElementById('blitz-toast-text').textContent = msg;
+            document.getElementById('blitz-toast-sub').textContent = subText ? `De: ${subText}` : '';
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2800);
+        }
+
+        async function handleGameExitButtonClick() {
+            if (!currentRoomState) return;
+            if (!currentRoomState.players.p2 || currentRoomState.status === 'WAITING') {
+                await cancelMyRoom();
+            } else {
+                openAbandonModal();
+            }
+        }
+
+        async function cancelMyRoom() {
+            if (!activeRoomId || !currentRoomState) return;
+
+            if (currentRoomState.players?.p2) {
+                openAbandonModal();
+                return;
+            }
+
+            try {
+                clearAfkTimers();
+                const roomRef = doc(db, ROOMS_COL, activeRoomId);
+                await deleteDoc(roomRef);
+                await decrementDailyMatchesCount();
+                exitGameToLobby();
+            } catch (err) {
+                console.error("Error cancelando la sala:", err);
+            }
+        }
+
+        function openAbandonModal() {
+            document.getElementById('modal-abandon-confirm').classList.remove('hidden');
+        }
+
+        function closeAbandonModal() {
+            document.getElementById('modal-abandon-confirm').classList.add('hidden');
+        }
+
+        async function confirmAbandonMatch() {
+            closeAbandonModal();
+            if (!activeRoomId || !currentRoomState) return;
+
+            const roomRef = doc(db, ROOMS_COL, activeRoomId);
+            const isP1 = currentRoomState.players.p1.id === userData.id;
+            const winnerId = isP1 ? (currentRoomState.players.p2?.id || '') : currentRoomState.players.p1.id;
+            const winnerName = isP1 ? (currentRoomState.players.p2?.name || 'Rival') : currentRoomState.players.p1.name;
+
+            const ptsWinner = currentRoomState.maxPoints;
+            const ptsLoser = isP1 ? currentRoomState.gameState.p1Score : currentRoomState.gameState.p2Score;
+
+            await recordMatchToTrucoLeague({
+                p1Id: currentRoomState.players.p1.id,
+                p1Name: currentRoomState.players.p1.name,
+                p2Id: currentRoomState.players.p2?.id || '',
+                p2Name: currentRoomState.players.p2?.name || 'Rival',
+                winnerId,
+                winnerName,
+                ptsWinner,
+                ptsLoser,
+                wagerPoints: Number(currentRoomState.wagerPoints) || 0,
+                roomId: activeRoomId,
+                reason: 'ABANDONO'
+            });
+
+            await updateDoc(roomRef, {
+                status: 'FINISHED',
+                reason: 'ABANDONMENT',
+                winnerId: winnerId,
+                winnerName: winnerName,
+                abandonedBy: userData.id
+            });
+
+            showMatchResultModal({
+                won: false,
+                title: 'HAS ABANDONADO',
+                desc: 'Le diste la victoria automática a tu rival. Se ha registrado en Truco LEAGUE.'
+            });
+        }
+
+        async function handleMatchFinishedState(room) {
+            clearAfkTimers();
+            const isWinner = room.winnerId === userData.id;
+
+            if (room.reason === 'ABANDONMENT') {
+                if (isWinner) {
+                    showMatchResultModal({
+                        won: true,
+                        title: '¡VICTORIA POR ABANDONO!',
+                        desc: 'Tu rival ha abandonado la partida. Ganaste los puntos (+1 PT) para Truco LEAGUE.'
+                    });
+                } else {
+                    showMatchResultModal({
+                        won: false,
+                        title: 'PARTIDA ABANDONADA',
+                        desc: 'La partida finalizó por abandono.'
+                    });
+                }
+            } else if (room.reason === 'INACTIVITY') {
+                if (isWinner) {
+                    showMatchResultModal({
+                        won: true,
+                        title: '¡VICTORIA POR INACTIVIDAD!',
+                        desc: 'Tu rival no respondió a tiempo. Ganaste la partida (+1 PT).'
+                    });
+                } else {
+                    showMatchResultModal({
+                        won: false,
+                        title: 'DERROTA POR INACTIVIDAD',
+                        desc: 'Transcurrió el tiempo de espera por inactividad.'
+                    });
+                }
+            } else {
+                showMatchResultModal({
+                    won: isWinner,
+                    title: isWinner ? '¡VICTORIA!' : 'DERROTA',
+                    desc: isWinner ? '¡Felicitaciones! Has ganado la partida.' : 'Buen intento en esta mesa.'
+                });
+            }
+        }
+
+        function showMatchResultModal({ won, title, desc }) {
+            const modal = document.getElementById('modal-match-result');
+            const iconContainer = document.getElementById('result-icon-container');
+            const icon = document.getElementById('result-icon');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (won) {
+                iconContainer.className = "w-16 h-16 rounded-2xl bg-gold/20 border-2 border-gold text-gold mx-auto flex items-center justify-center text-3xl shadow-bar-gold";
+                icon.className = "fa-solid fa-trophy";
+                titleEl.textContent = title || "¡VICTORIA!";
+                titleEl.className = "text-xl font-bar font-black gold-3d-text uppercase";
+            } else {
+                iconContainer.className = "w-16 h-16 rounded-2xl bg-red-950/80 border-2 border-red-500/80 text-red-400 mx-auto flex items-center justify-center text-3xl shadow-lg";
+                icon.className = "fa-solid fa-heart-crack";
+                titleEl.textContent = title || "DERROTA";
+                titleEl.className = "text-xl font-bar font-black text-red-400 uppercase";
+            }
+
+            descEl.textContent = desc || "";
+
+            const wagerBox = document.getElementById('result-wager');
+            const wagerValue = document.getElementById('result-wager-value');
+            const wagerCopy = document.getElementById('result-wager-copy');
+            const matchWager = Number(currentRoomState?.wagerPoints) || 0;
+            if (wagerBox && wagerValue && wagerCopy) {
+                if (matchWager > 0) {
+                    const net = currentRoomState?.winnerId === userData?.id ? matchWager : -matchWager;
+                    wagerBox.classList.remove('hidden');
+                    wagerValue.textContent = `${net > 0 ? '+' : ''}${net} PT`;
+                    wagerCopy.textContent = `Apuesta ${matchWager} PT • Pozo ${matchWager * 2} PT`;
+                } else {
+                    wagerBox.classList.add('hidden');
+                }
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function exitGameToLobby() {
+            clearAfkTimers();
+            activeRoomId = null;
+            currentRoomState = null;
+            matchFinishedHandled = false;
+            lastGameRenderSignature = '';
+            lastBalanceSyncedRoomId = null;
+
+            document.getElementById('modal-match-result').classList.add('hidden');
+            document.getElementById('modal-abandon-confirm').classList.add('hidden');
+            document.getElementById('modal-confirm-mazo').classList.add('hidden');
+
+            if (roomUnsubscribe) {
+                roomUnsubscribe();
+                roomUnsubscribe = null;
+            }
+
+            showScreen('screen-lobby');
+            listenToRooms();
+        }
+
+        // REGISTRO OFICIAL Y SINCRONIZACIÓN CON TRUCO LEAGUE
+        // La lógica base de ranking y VENTAJA se conserva.
+        // La apuesta solo agrega un pozo opcional de 1-3 puntos de tabla.
+        async function recordMatchToTrucoLeague({
+            p1Id, p1Name, p2Id, p2Name, winnerId, winnerName,
+            ptsWinner = 15, ptsLoser = 0, wagerPoints = 0, roomId = null, reason = 'NORMAL'
+        }) {
+            try {
+                const todayIso = new Date().toISOString().split('T')[0];
+                const safePtsWinner = Number(ptsWinner) || 0;
+                const safePtsLoser = Number(ptsLoser) || 0;
+                const ventaja = Math.max(0, safePtsWinner - safePtsLoser);
+                const loserId = winnerId === p1Id ? p2Id : p1Id;
+                const loserName = winnerId === p1Id ? p2Name : p1Name;
+                const safeWager = Math.max(0, Math.min(3, Number(wagerPoints) || 0));
+
+                if (!winnerId || !loserId) {
+                    throw new Error('No se pudo determinar el ID del ganador y del perdedor.');
+                }
+
+                const winnerRef = doc(db, PLAYERS_COL, winnerId);
+                const loserRef = doc(db, PLAYERS_COL, loserId);
+                const roomRef = roomId ? doc(db, ROOMS_COL, roomId) : null;
+
+                const settlement = await runTransaction(db, async (tx) => {
+                    const [winnerSnap, loserSnap, roomSnap] = await Promise.all([
+                        tx.get(winnerRef),
+                        tx.get(loserRef),
+                        roomRef ? tx.get(roomRef) : Promise.resolve(null)
+                    ]);
+
+                    if (!winnerSnap.exists()) throw new Error(`No existe el jugador ganador en Firestore: ${winnerId}`);
+                    if (!loserSnap.exists()) throw new Error(`No existe el jugador perdedor en Firestore: ${loserId}`);
+
+                    const winnerData = winnerSnap.data();
+                    const loserData = loserSnap.data();
+
+                    const winnerCurrentPts = Number(winnerData.puntos) || 0;
+                    const loserCurrentPts = Number(loserData.puntos) || 0;
+
+                    const winnerCurrentPg = Number(
+                        winnerData.pg ?? winnerData.ganadas ?? winnerData.partidasGanadas ?? 0
+                    ) || 0;
+                    const loserCurrentPp = Number(
+                        loserData.pp ?? loserData.perdidas ?? loserData.partidasPerdidas ?? 0
+                    ) || 0;
+
+                    const winnerBasePg = Number(winnerData.pg ?? winnerData.ganadas ?? winnerData.partidasGanadas ?? 0) || 0;
+                    const winnerBasePp = Number(winnerData.pp ?? winnerData.perdidas ?? winnerData.partidasPerdidas ?? 0) || 0;
+                    const loserBasePg = Number(loserData.pg ?? loserData.ganadas ?? loserData.partidasGanadas ?? 0) || 0;
+                    const loserBasePp = Number(loserData.pp ?? loserData.perdidas ?? loserData.partidasPerdidas ?? 0) || 0;
+
+                    const winnerCurrentPj = Number(
+                        winnerData.pj ?? winnerData.partidasJugadas ?? (winnerBasePg + winnerBasePp)
+                    ) || 0;
+                    const loserCurrentPj = Number(
+                        loserData.pj ?? loserData.partidasJugadas ?? (loserBasePg + loserBasePp)
+                    ) || 0;
+
+                    const winnerCurrentAdv = Number(
+                        winnerData.ventaja ?? winnerData.ventajaTotal ?? winnerData.diferenciaPuntos ?? 0
+                    ) || 0;
+                    const loserCurrentAdv = Number(
+                        loserData.ventaja ?? loserData.ventajaTotal ?? loserData.diferenciaPuntos ?? 0
+                    ) || 0;
+
+                    const winnerPg = winnerCurrentPg + 1;
+                    const loserPg = loserBasePg;
+                    const winnerPp = winnerBasePp;
+                    const loserPp = loserCurrentPp + 1;
+                    const winnerPj = winnerCurrentPj + 1;
+                    const loserPj = loserCurrentPj + 1;
+
+                    const winnerWr = winnerPj > 0 ? Number(((winnerPg / winnerPj) * 100).toFixed(2)) : 0;
+                    const loserWr = loserPj > 0 ? Number(((loserPg / loserPj) * 100).toFixed(2)) : 0;
+
+                    const winnerAdv = winnerCurrentAdv + ventaja;
+                    const loserAdv = loserCurrentAdv - ventaja;
+
+                    // El pozo solo se paga una vez y solo si fue bloqueado al comenzar la mesa.
+                    const roomData = roomSnap?.exists?.() ? roomSnap.data() : null;
+                    const roomStake = roomData?.wagerLocked ? Math.max(0, Math.min(3, Number(roomData.wagerPoints) || safeWager)) : 0;
+                    const wagerAlreadySettled = roomData?.wagerSettled === true;
+                    const wagerPayout = (!wagerAlreadySettled && roomStake > 0) ? roomStake * 2 : 0;
+
+                    tx.update(winnerRef, {
+                        puntos: winnerCurrentPts + ventaja + wagerPayout,
+                        pg: winnerPg,
+                        pp: winnerPp,
+                        pj: winnerPj,
+                        partidasJugadas: winnerPj,
+                        ganadas: winnerPg,
+                        perdidas: winnerPp,
+                        victorias: winnerPg,
+                        derrotas: winnerPp,
+                        wr: winnerWr,
+                        winRate: winnerWr,
+                        ventaja: winnerAdv,
+                        ventajaTotal: winnerAdv,
+                        diferenciaPuntos: winnerAdv
+                    });
+
+                    tx.update(loserRef, {
+                        puntos: loserCurrentPts,
+                        pg: loserPg,
+                        pp: loserPp,
+                        pj: loserPj,
+                        partidasJugadas: loserPj,
+                        ganadas: loserPg,
+                        perdidas: loserPp,
+                        victorias: loserPg,
+                        derrotas: loserPp,
+                        wr: loserWr,
+                        winRate: loserWr,
+                        ventaja: loserAdv,
+                        ventajaTotal: loserAdv,
+                        diferenciaPuntos: loserAdv
+                    });
+
+                    if (roomRef && roomData && !wagerAlreadySettled && roomStake > 0) {
+                        tx.update(roomRef, {
+                            wagerSettled: true,
+                            wagerWinnerId: winnerId,
+                            wagerPayout,
+                            wagerNetWinner: roomStake,
+                            wagerNetLoser: -roomStake
+                        });
+                    }
+
+                    return {
+                        winnerCurrentPts,
+                        loserCurrentPts,
+                        winnerPg,
+                        winnerPp,
+                        loserPg,
+                        loserPp,
+                        winnerPj,
+                        loserPj,
+                        winnerWr,
+                        loserWr,
+                        winnerAdv,
+                        loserAdv,
+                        wagerPayout,
+                        wagerNetWinner: roomStake,
+                        wagerNetLoser: -roomStake
+                    };
+                });
+
+                const matchId = `${activeRoomId || roomId || 'match'}_${Date.now()}`;
+                const matchRef = doc(db, MATCHES_COL, matchId);
+                await setDoc(matchRef, {
+                    id: matchId,
+                    salaId: activeRoomId || roomId || null,
+                    fecha: todayIso,
+                    fechaIso: todayIso,
+                    ganador: winnerName,
+                    perdedor: loserName,
+                    ganadorId: winnerId,
+                    perdedorId: loserId,
+
+                    // Compatibilidad con versiones anteriores:
+                    ptsGanador: safePtsWinner,
+                    ptsPerdedor: safePtsLoser,
+                    puntosGanador: safePtsWinner,
+                    puntosPerdedor: safePtsLoser,
+
+                    // VENTAJA tradicional de Truco LEAGUE:
+                    ventaja: ventaja,
+                    motivo: reason,
+
+                    // Nueva capa opcional de apuestas:
+                    apuestaPuntos: settlement.wagerNetWinner,
+                    pozoApuesta: settlement.wagerPayout,
+                    apuestaPagada: settlement.wagerPayout > 0,
+
+                    estado: 'APROBADA',
+                    timestamp: new Date().toISOString()
+                });
+
+                if (userData?.id === winnerId) {
+                    userData.puntos = settlement.winnerCurrentPts + ventaja + settlement.wagerPayout;
+                    userData.pg = settlement.winnerPg;
+                    userData.pp = settlement.winnerPp;
+                    userData.pj = settlement.winnerPj;
+                    userData.wr = settlement.winnerWr;
+                    userData.winRate = settlement.winnerWr;
+                    userData.ventaja = settlement.winnerAdv;
+                } else if (userData?.id === loserId) {
+                    userData.puntos = settlement.loserCurrentPts;
+                    userData.pg = settlement.loserPg;
+                    userData.pp = settlement.loserPp;
+                    userData.pj = settlement.loserPj;
+                    userData.wr = settlement.loserWr;
+                    userData.winRate = settlement.loserWr;
+                    userData.ventaja = settlement.loserAdv;
+                }
+
+                await loadLeaderboard();
+                setupUserUI();
+
+                console.info('Partida sincronizada con Truco LEAGUE:', {
+                    ganador: winnerName,
+                    perdedor: loserName,
+                    ventaja,
+                    apuestaPuntos: settlement.wagerNetWinner,
+                    pozoApuesta: settlement.wagerPayout
+                });
+            } catch (err) {
+                console.error("Error registrando partida en TRUCO LEAGUE:", err);
+                showBlitzToast("No se pudo sincronizar la partida con Truco LEAGUE", "Error");
+                throw err;
+            }
+        }
+
+        // PANEL DE ADMINISTRACIÓN (SOLO PARA ROL ADMIN / SAMU)
+        window.openAdminPanel = function() {
+            if (!checkIsAdmin(userData)) return;
+            document.getElementById('modal-admin-panel').classList.remove('hidden');
+            loadAdminPlayers();
+        };
+
+        window.closeAdminPanel = function() {
+            document.getElementById('modal-admin-panel').classList.add('hidden');
+        };
+
+        window.switchAdminTab = function(tab) {
+            ['players', 'rooms', 'matches'].forEach(t => {
+                const tabBtn = document.getElementById(`tab-admin-${t}`);
+                const sec = document.getElementById(`admin-sec-${t}`);
+                if (t === tab) {
+                    tabBtn.className = "py-2 rounded-lg bg-gold/20 text-gold border border-gold/30 font-bold";
+                    sec.classList.remove('hidden');
+                } else {
+                    tabBtn.className = "py-2 rounded-lg hover:text-slate-200";
+                    sec.classList.add('hidden');
+                }
+            });
+
+            if (tab === 'players') loadAdminPlayers();
+            if (tab === 'rooms') loadAdminRooms();
+            if (tab === 'matches') loadAdminMatches();
+        };
+
+        async function loadAdminPlayers() {
+            const container = document.getElementById('admin-players-list');
+            container.innerHTML = `<div class="text-center py-6 text-wood-500 text-xs">Cargando usuarios...</div>`;
+
+            try {
+                const snap = await getDocs(colRef(PLAYERS_COL));
+                container.innerHTML = '';
+                document.getElementById('admin-players-count').textContent = snap.size;
+
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const name = data.nombre || data.usuario || 'Jugador';
+                    const pts = data.puntos || 0;
+                    const daily = data.dailyMatches || 0;
+
+                    const row = document.createElement('div');
+                    row.className = "wood-panel p-2.5 rounded-xl flex justify-between items-center text-xs border-wood-700";
+                    row.innerHTML = `
+                        <div>
+                            <div class="font-bold text-amber-100">${escapeHTML(name)}</div>
+                            <div class="text-[10px] text-wood-500">Pts: ${pts} | Hoy: ${daily}/${MAX_DAILY_MATCHES}</div>
+                        </div>
+                        <button onclick="resetPlayerDailyMatches('${docSnap.id}')" class="bg-gold/15 hover:bg-gold/30 text-gold border border-gold/40 px-2 py-1 rounded text-[10px] font-bold">
+                            Reiniciar Hoy
+                        </button>
+                    `;
+                    container.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error admin al cargar jugadores:", err);
+            }
+        }
+
+        window.resetPlayerDailyMatches = async function(uid) {
+            try {
+                await updateDoc(doc(db, PLAYERS_COL, uid), { dailyMatches: 0 });
+                showBlitzToast("Cuota diaria reiniciada a 0", "Administrador");
+                loadAdminPlayers();
+            } catch (err) {
+                console.error("Error al reiniciar usuario:", err);
+            }
+        };
+
+        // REINICIO DE LA TABLA DE POSICIONES
+        window.openResetLeaderboardModal = function() {
+            document.getElementById('modal-reset-leaderboard-confirm').classList.remove('hidden');
+        };
+
+        window.closeResetLeaderboardModal = function() {
+            document.getElementById('modal-reset-leaderboard-confirm').classList.add('hidden');
+        };
+
+        window.confirmResetLeaderboard = async function() {
+            closeResetLeaderboardModal();
+            try {
+                const snap = await getDocs(colRef(PLAYERS_COL));
+                const updatePromises = [];
+
+                snap.forEach(docSnap => {
+                    const playerRef = doc(db, PLAYERS_COL, docSnap.id);
+                    updatePromises.push(updateDoc(playerRef, {
+                        puntos: 0,
+                        pg: 0,
+                        pp: 0
+                    }));
+                });
+
+                await Promise.all(updatePromises);
+
+                if (userData) {
+                    userData.puntos = 0;
+                    userData.pg = 0;
+                    userData.pp = 0;
+                    setupUserUI();
+                }
+
+                loadAdminPlayers();
+                loadLeaderboard();
+                showBlitzToast("¡TABLA DE POSICIONES REINICIADA!", "Administrador");
+            } catch (err) {
+                console.error("Error al reiniciar la tabla de posiciones:", err);
+                showBlitzToast("Error al reiniciar la tabla", "Error");
+            }
+        };
+
+        async function loadAdminRooms() {
+            const container = document.getElementById('admin-rooms-list');
+            container.innerHTML = `<div class="text-center py-6 text-wood-500 text-xs">Buscando salas...</div>`;
+
+            try {
+                const snap = await getDocs(colRef(ROOMS_COL));
+                container.innerHTML = '';
+
+                if (snap.empty) {
+                    container.innerHTML = `<div class="text-center py-6 text-wood-500 text-xs">No hay salas creadas.</div>`;
+                    return;
+                }
+
+                snap.forEach(docSnap => {
+                    const r = docSnap.data();
+                    const p1 = r.players?.p1?.name || 'P1';
+                    const p2 = r.players?.p2?.name || 'Esperando';
+
+                    const row = document.createElement('div');
+                    row.className = "wood-panel p-2.5 rounded-xl flex justify-between items-center text-xs border-wood-700";
+                    row.innerHTML = `
+                        <div>
+                            <div class="font-bold text-amber-100">${escapeHTML(p1)} vs ${escapeHTML(p2)}</div>
+                            <div class="text-[10px] text-wood-500">Estado: ${r.status} (${r.maxPoints} pts)</div>
+                        </div>
+                        <button onclick="deleteRoomAdmin('${docSnap.id}')" class="bg-red-950/80 hover:bg-red-900 border border-red-500/50 text-red-300 px-2 py-1 rounded text-[10px] font-bold">
+                            Cerrar Sala
+                        </button>
+                    `;
+                    container.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error admin al cargar salas:", err);
+            }
+        }
+
+        window.deleteRoomAdmin = async function(rid) {
+            try {
+                await deleteDoc(doc(db, ROOMS_COL, rid));
+                loadAdminRooms();
+            } catch (err) {
+                console.error("Error cerrando sala:", err);
+            }
+        };
+
+        async function loadAdminMatches() {
+            const container = document.getElementById('admin-matches-list');
+            container.innerHTML = `<div class="text-center py-6 text-wood-500 text-xs">Cargando historial...</div>`;
+
+            try {
+                const snap = await getDocs(colRef(MATCHES_COL));
+                container.innerHTML = '';
+
+                if (snap.empty) {
+                    container.innerHTML = `<div class="text-center py-6 text-wood-500 text-xs">No hay partidas registradas aún.</div>`;
+                    return;
+                }
+
+                const matches = [];
+                snap.forEach(d => matches.push(d.data()));
+                matches.sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+                matches.slice(0, 15).forEach(m => {
+                    const row = document.createElement('div');
+                    row.className = "wood-panel p-2 rounded-xl text-xs border-wood-700 space-y-0.5";
+                    row.innerHTML = `
+                        <div class="flex justify-between font-bold gap-2">
+                            <span class="text-gold truncate">${escapeHTML(m.ganador)}</span>
+                            <span class="text-amber-100/45 shrink-0">vs ${escapeHTML(m.perdedor)}</span>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-wood-500 gap-2">
+                            <span>Marcador: ${m.ptsGanador} - ${m.ptsPerdedor} (${m.motivo || 'NORMAL'})</span>
+                            <span class="shrink-0">${m.apuestaPuntos ? `Apuesta ${m.apuestaPuntos} PT` : 'Sin apuesta'} • ${m.fecha || ''}</span>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error admin cargando historial:", err);
+            }
+        }
+
+        // Habilitar globales para los onclicks de las vistas HTML
+        window.handleLogin = handleLogin;
+        window.logout = logout;
+        window.switchLobbyTab = switchLobbyTab;
+        window.loadLeaderboard = loadLeaderboard;
+        window.openCreateRoomModal = openCreateRoomModal;
+        window.closeCreateRoomModal = closeCreateRoomModal;
+        window.selectRoomPoints = selectRoomPoints;
+        window.selectWagerPoints = selectWagerPoints;
+        window.confirmCreateRoom = confirmCreateRoom;
+        window.cancelRoomFromLobby = cancelRoomFromLobby;
+        window.joinGameRoom = joinGameRoom;
+        window.confirmStillHere = confirmStillHere;
+        window.openMazoModal = openMazoModal;
+        window.closeMazoModal = closeMazoModal;
+        window.confirmIrseAlMazo = confirmIrseAlMazo;
+        window.handleGameExitButtonClick = handleGameExitButtonClick;
+        window.closeAbandonModal = closeAbandonModal;
+        window.confirmAbandonMatch = confirmAbandonMatch;
+        window.exitGameToLobby = exitGameToLobby;
+        window.cantarTantosEnvido = cantarTantosEnvido;
+        window.cantAction = cantAction;
+        window.respondCall = respondCall;
+</script>
+</body>
+</html>
