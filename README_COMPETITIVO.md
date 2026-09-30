@@ -1,6 +1,6 @@
 # Truco League — versión competitiva
 
-## Qué cambia en esta entrega
+## Qué cambia en esta entreg
 
 ### Tabla de posicions
 - La tabla queda deliberadamente compacta y competitiva: **POS · JUGADOR · PTS · G/P · VENT. · WR**.
