@@ -1,0 +1,22 @@
+{
+  "short_name": "Truco League v2",
+  "name": "Truco League v2 · Experimental Lab",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "display": "standalone",
+  "orientation": "portrait",
+  "description": "Truco League v2: MMR, temporadas y laboratorio experimental de torneos."
+}
