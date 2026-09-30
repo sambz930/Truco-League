@@ -1,5 +1,5 @@
 TRUCO LEAGUE v2 · TEST
-
+2
 BASE
 - Parte de la versión con autenticación corregida.
 - Perfiles legacy con correo + contraseña pueden migrarse al primer acceso.
