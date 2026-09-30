@@ -2,7 +2,7 @@
 
 ## Qué cambia en esta entrega
 
-### Tabla de posiciones
+### Tabla de posicions
 - La tabla queda deliberadamente compacta y competitiva: **POS · JUGADOR · PTS · G/P · VENT. · WR**.
 - **↑↓ fue eliminado** por no funcionar de forma confiable y para ahorrar espacio, especialmente en celular.
 - **Forma** fue eliminada de la tabla. La secuencia de los últimos cinco partidos pasa a la ficha competitiva.
