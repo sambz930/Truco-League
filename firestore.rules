@@ -1,0 +1,666 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function admin() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email == 'benitezsamuel930@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    function seasonRef(appId) {
+      return /databases/$(database)/documents/artifacts/$(appId)/public/data/season_config/main;
+    }
+
+    function currentSeason(appId) {
+      return get(seasonRef(appId)).data.seasonNumber;
+    }
+
+    function accountRef(appId, uid) {
+      return /databases/$(database)/documents/artifacts/$(appId)/public/data/cuentas/$(uid);
+    }
+
+    function playerProfile(appId) {
+      return get(accountRef(appId, request.auth.uid)).data;
+    }
+
+    function playerName(appId) {
+      return playerProfile(appId).nombre;
+    }
+
+    function isPlayer(appId) {
+      return signedIn()
+        && !admin()
+        && exists(accountRef(appId, request.auth.uid))
+        && playerProfile(appId).role == 'JUGADOR'
+        && playerProfile(appId).estado == 'APROBADO';
+    }
+
+    function playerExists(appId, name) {
+      return exists(/databases/$(database)/documents/artifacts/$(appId)/public/data/jugadores/$(name));
+    }
+
+    function allMatchPlayersExist(appId, data) {
+      return data.ganadores.size() >= 1
+        && data.perdedores.size() >= 1
+        && playerExists(appId, data.ganadores[0])
+        && playerExists(appId, data.perdedores[0])
+        && (
+          data.tipo == '1v1'
+          || (
+            data.ganadores.size() == 2 && data.perdedores.size() == 2
+            && playerExists(appId, data.ganadores[1])
+            && playerExists(appId, data.perdedores[1])
+          )
+          || (
+            data.ganadores.size() == 3 && data.perdedores.size() == 3
+            && playerExists(appId, data.ganadores[1]) && playerExists(appId, data.ganadores[2])
+            && playerExists(appId, data.perdedores[1]) && playerExists(appId, data.perdedores[2])
+          )
+        );
+    }
+
+    function validMatch(appId, data) {
+      return data.schemaVersion == 2
+        && data.id is string
+        && data.seasonNumber == currentSeason(appId)
+        && data.tipo in ['1v1', '2v2', '3v3']
+        && data.ganadores is list
+        && data.perdedores is list
+        && data.ptsGanador is number
+        && data.ptsPerdedor is number
+        && data.ventaja is number
+        && data.puntosGanadorPorJugador is number
+        && data.ptsGanador >= 0 && data.ptsGanador <= 30
+        && data.ptsPerdedor >= 0 && data.ptsPerdedor <= 30
+        && data.ptsGanador > data.ptsPerdedor
+        && data.ventaja == data.ptsGanador - data.ptsPerdedor
+        && (
+          (data.tipo == '1v1' && data.ganadores.size() == 1 && data.perdedores.size() == 1 && data.puntosGanadorPorJugador == 1)
+          ||
+          (data.tipo == '2v2' && data.ganadores.size() == 2 && data.perdedores.size() == 2 && data.puntosGanadorPorJugador == 2)
+          ||
+          (data.tipo == '3v3' && data.ganadores.size() == 3 && data.perdedores.size() == 3 && data.puntosGanadorPorJugador == 2)
+        )
+        && allMatchPlayersExist(appId, data)
+        && ((data.tipo == '1v1' && data.ganadores[0] != data.perdedores[0])
+          || (data.tipo == '2v2' && data.ganadores[0] != data.ganadores[1] && data.perdedores[0] != data.perdedores[1]
+              && data.ganadores[0] != data.perdedores[0] && data.ganadores[0] != data.perdedores[1] && data.ganadores[1] != data.perdedores[0] && data.ganadores[1] != data.perdedores[1])
+          || (data.tipo == '3v3' && data.ganadores[0] != data.ganadores[1] && data.ganadores[0] != data.ganadores[2] && data.ganadores[1] != data.ganadores[2]
+              && data.perdedores[0] != data.perdedores[1] && data.perdedores[0] != data.perdedores[2] && data.perdedores[1] != data.perdedores[2]
+              && data.ganadores[0] != data.perdedores[0] && data.ganadores[0] != data.perdedores[1] && data.ganadores[0] != data.perdedores[2]
+              && data.ganadores[1] != data.perdedores[0] && data.ganadores[1] != data.perdedores[1] && data.ganadores[1] != data.perdedores[2]
+              && data.ganadores[2] != data.perdedores[0] && data.ganadores[2] != data.perdedores[1] && data.ganadores[2] != data.perdedores[2]));
+    }
+
+    function creatorIdentityIsValid(appId, data) {
+      return data.creatorUid == request.auth.uid
+        && data.usuarioCarga == request.auth.token.email
+        && data.jugadorCarga == playerName(appId)
+        && (data.ganadores.hasAny([playerName(appId)]) || data.perdedores.hasAny([playerName(appId)]));
+    }
+
+    match /artifacts/{appId}/public/data/cuentas/{uid} {
+      allow get: if admin() || (signedIn() && uid == request.auth.uid);
+      allow list: if admin();
+      allow create: if signedIn()
+        && uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == 'JUGADOR'
+        && request.resource.data.estado == 'PENDIENTE'
+        && request.resource.data.keys().hasOnly(['uid','email','nombre','role','estado','emailVerified','createdAt'])
+        && request.resource.data.createdAt == request.time;
+      allow update: if admin()
+        && (
+          request.resource.data.estado != 'APROBADO'
+          || resource.data.estado == 'APROBADO'
+          || !exists(/databases/$(database)/documents/artifacts/$(appId)/public/data/jugadores/$(request.resource.data.nombre))
+        );
+      allow delete: if admin();
+    }
+
+    match /artifacts/{appId}/public/data/jugadores/{playerId} {
+      allow read: if signedIn();
+      // Un jugador puede crear su propio documento de perfil únicamente para guardar su avatar.
+      allow create: if admin()
+        || (
+          isPlayer(appId)
+          && playerId == playerName(appId)
+          && request.resource.data.nombre == playerName(appId)
+          && request.resource.data.avatarData is string
+          && request.resource.data.avatarData.size() <= 20000
+          && request.resource.data.avatarUpdatedAt == request.time
+        );
+      // El jugador solo puede modificar su propio avatar y, una vez cambiado, debe esperar 21 días.
+      // Los perfiles antiguos que guardaban avatarUpdatedAt como número pueden migrarse una sola vez.
+      allow update: if (
+          admin()
+          || (isPlayer(appId) && playerId == playerName(appId))
+        )
+        && request.resource.data.nombre == resource.data.nombre
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatarData','avatarUpdatedAt'])
+        && request.resource.data.avatarData is string
+        && request.resource.data.avatarData.size() <= 20000
+        && request.resource.data.avatarUpdatedAt == request.time
+        && (
+          !resource.data.keys().hasAny(['avatarUpdatedAt'])
+          || (resource.data.avatarUpdatedAt is timestamp && resource.data.avatarUpdatedAt + duration.value(21, 'd') <= request.time)
+          || (resource.data.avatarUpdatedAt is number && timestamp.value(resource.data.avatarUpdatedAt) + duration.value(21, 'd') <= request.time)
+        );
+      allow delete: if admin();
+    }
+
+    match /artifacts/{appId}/public/data/partidas/{matchId} {
+      allow read: if admin() || resource.data.estado == 'APROBADA' || (signedIn() && resource.data.creatorUid == request.auth.uid);
+
+      allow create: if admin()
+        && validMatch(appId, request.resource.data)
+        && request.resource.data.id == matchId
+        && request.resource.data.estado == 'APROBADA'
+        && request.resource.data.creatorUid == request.auth.uid
+        && request.resource.data.usuarioCarga == request.auth.token.email
+        && request.resource.data.aprobadoPor == request.auth.uid
+        && request.resource.data.aprobadoAt == request.time;
+
+      allow create: if isPlayer(appId)
+        && validMatch(appId, request.resource.data)
+        && request.resource.data.id == matchId
+        && request.resource.data.estado == 'PENDIENTE'
+        && creatorIdentityIsValid(appId, request.resource.data)
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if (
+          admin()
+          && validMatch(appId, request.resource.data)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.creatorUid == resource.data.creatorUid
+          && request.resource.data.seasonNumber == resource.data.seasonNumber
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'estado','aprobadoAt','aprobadoPor','rechazadoAt','rechazadoPor','anuladoAt','anuladoPor','ultimaRevisionAt','ultimaRevisionPor','syncStatus','offlineQueued'
+          ])
+          && (
+            (resource.data.estado == 'PENDIENTE' && request.resource.data.estado in ['APROBADA','RECHAZADA'])
+            || (resource.data.estado == 'APROBADA' && request.resource.data.estado == 'ANULADA')
+          )
+        ) || (
+          admin()
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.creatorUid == resource.data.creatorUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ganador','perdedor','ganadores','perdedores','jugadorCarga'])
+        );
+
+      allow delete: if admin();
+    }
+
+    // Solicitudes para organizar torneos. Un jugador aprobado solo puede solicitar en su propio nombre.
+    match /artifacts/{appId}/public/data/solicitudes_torneo/{requestId} {
+      allow read: if admin() || (signedIn() && resource.data.requesterUid == request.auth.uid);
+      // Un único documento por UID evita que dos clics/dispositivos creen solicitudes simultáneas.
+      allow create: if isPlayer(appId)
+        && requestId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['requesterUid','requesterName','status','createdAt'])
+        && request.resource.data.requesterUid == request.auth.uid
+        && request.resource.data.requesterName == playerName(appId)
+        && request.resource.data.status == 'PENDING'
+        && request.resource.data.createdAt is number;
+      allow update: if (
+          admin()
+          && resource.data.status == 'PENDING'
+          && request.resource.data.status in ['APPROVED','REJECTED']
+          && request.resource.data.requesterUid == resource.data.requesterUid
+          && request.resource.data.requesterName == resource.data.requesterName
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','approvedBy','tournamentId','approvedAt','rejectedBy','rejectedAt'])
+        ) || (
+          // El mismo usuario puede volver a solicitar después de una decisión anterior, nunca mientras esté pendiente.
+          isPlayer(appId)
+          && requestId == request.auth.uid
+          && resource.data.requesterUid == request.auth.uid
+          && resource.data.requesterName == playerName(appId)
+          && resource.data.status in ['APPROVED','REJECTED']
+          && request.resource.data.requesterUid == request.auth.uid
+          && request.resource.data.requesterName == playerName(appId)
+          && request.resource.data.status == 'PENDING'
+          && request.resource.data.createdAt is number
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','createdAt'])
+        );
+      allow delete: if admin();
+    }
+
+    // El torneo tiene transiciones de estado limitadas. El organizador es la cuenta que lo solicitó,
+    // o el administrador si lo creó directamente.
+    match /artifacts/{appId}/public/data/torneos/{tournamentId} {
+      function tournamentManager() {
+        return admin() || (signedIn() && resource.data.organizerUid == request.auth.uid);
+      }
+      function tournamentAfter() {
+        return getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)).data;
+      }
+      function finalMatchAfter() {
+        return getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/r$(resource.data.totalRounds)m1).data;
+      }
+
+      allow read: if signedIn();
+      allow create: if admin()
+        // El torneo y el candado se crean en el mismo commit para no dejar torneos huérfanos.
+        && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos_control/active).data.activeTournamentId == tournamentId
+        && request.resource.data.id == tournamentId
+        && request.resource.data.title is string
+        && request.resource.data.status == 'SELECTING'
+        && request.resource.data.organizerUid is string
+        && request.resource.data.organizerName is string
+        && request.resource.data.players is list
+        && request.resource.data.players.size() == 0
+        && request.resource.data.pointsToWin in [15, 30]
+        && request.resource.data.seasonNumber == currentSeason(appId)
+        && request.resource.data.createdAt is number
+        && request.resource.data.updatedAt is number
+        && request.resource.data.champion == null;
+
+      allow update: if admin() || (
+        signedIn()
+        && resource.data.organizerUid == request.auth.uid
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.organizerUid == resource.data.organizerUid
+        && request.resource.data.organizerName == resource.data.organizerName
+        && (
+          // Confirmar la lista y fijar una sola meta de puntos para todos los cruces.
+          (resource.data.status == 'SELECTING'
+            && request.resource.data.status == 'READY_FOR_DRAW'
+            && request.resource.data.players is list
+            && request.resource.data.players.size() >= 2
+            && request.resource.data.players.size() <= 64
+            && request.resource.data.players.toSet().size() == request.resource.data.players.size()
+            && request.resource.data.pointsToWin in [15, 30]
+            && request.resource.data.updatedAt is number
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['players','status','pointsToWin','updatedAt']))
+          ||
+          (resource.data.status == 'SELECTING'
+            && request.resource.data.status == 'CANCELLED'
+            && request.resource.data.completedAt is number
+            && request.resource.data.cancelledAt is number
+            && request.resource.data.updatedAt is number
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','cancelledAt','completedAt','updatedAt']))
+          ||
+          (resource.data.status == 'READY_FOR_DRAW'
+            && request.resource.data.status == 'CANCELLED'
+            && request.resource.data.completedAt is number
+            && request.resource.data.cancelledAt is number
+            && request.resource.data.updatedAt is number
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','cancelledAt','completedAt','updatedAt']))
+          ||
+          // Se permite volver a la selección solo antes de crear la llave: no hay resultados que deshacer.
+          (resource.data.status == 'READY_FOR_DRAW'
+            && request.resource.data.status == 'SELECTING'
+            && request.resource.data.players == resource.data.players
+            && request.resource.data.pointsToWin == resource.data.pointsToWin
+            && request.resource.data.updatedAt is number
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt']))
+          ||
+          // Sorteo: el cambio de estado debe acompañar la creación de la llave en el mismo commit.
+          (resource.data.status == 'READY_FOR_DRAW'
+            && request.resource.data.status == 'RUNNING'
+            && request.resource.data.players == resource.data.players
+            && request.resource.data.pointsToWin == resource.data.pointsToWin
+            && request.resource.data.totalRounds is number
+            && request.resource.data.totalRounds >= 1
+            && request.resource.data.totalRounds <= 6
+            && request.resource.data.bracketSize is number
+            && request.resource.data.bracketSize in [2, 4, 8, 16, 32, 64]
+            && ((request.resource.data.totalRounds == 1 && request.resource.data.bracketSize == 2)
+              || (request.resource.data.totalRounds == 2 && request.resource.data.bracketSize == 4)
+              || (request.resource.data.totalRounds == 3 && request.resource.data.bracketSize == 8)
+              || (request.resource.data.totalRounds == 4 && request.resource.data.bracketSize == 16)
+              || (request.resource.data.totalRounds == 5 && request.resource.data.bracketSize == 32)
+              || (request.resource.data.totalRounds == 6 && request.resource.data.bracketSize == 64))
+            && request.resource.data.drawAt is number
+            && request.resource.data.updatedAt is number
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','drawAt','totalRounds','bracketSize','updatedAt']))
+          ||
+          // El torneo solo termina al cerrar su final y declarar exactamente a su ganador.
+          (resource.data.status == 'RUNNING'
+            && request.resource.data.status == 'COMPLETE'
+            && request.resource.data.champion is string
+            && request.resource.data.completedAt is number
+            && request.resource.data.updatedAt is number
+            && request.resource.data.champion == finalMatchAfter().winner
+            && finalMatchAfter().status == 'COMPLETE'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','champion','completedAt','updatedAt']))
+        )
+      ) || (
+        // También permite al jugador ganador cerrar el torneo en la misma transacción que la final.
+        isPlayer(appId)
+        && resource.data.status == 'RUNNING'
+        && request.resource.data.status == 'COMPLETE'
+        && request.resource.data.champion == playerName(appId)
+        && request.resource.data.completedAt is number
+        && request.resource.data.updatedAt is number
+        && request.resource.data.champion == finalMatchAfter().winner
+        && finalMatchAfter().status == 'COMPLETE'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','champion','completedAt','updatedAt'])
+      );
+      allow delete: if admin();
+
+      match /enfrentamientos/{matchId} {
+        function parentTournament() {
+          return get(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)).data;
+        }
+        function parentTournamentAfter() {
+          return getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)).data;
+        }
+        function canManage() {
+          return admin() || (signedIn() && parentTournament().organizerUid == request.auth.uid);
+        }
+        function sourceAAfter() {
+          return getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/$(resource.data.sourceMatchA)).data;
+        }
+        function sourceBAfter() {
+          return getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/$(resource.data.sourceMatchB)).data;
+        }
+        function completionEffectsValid(winner) {
+          return getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneo_puntos/$(tournamentId + '_MATCH_WIN_' + matchId)).data.player == winner
+            && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneo_puntos/$(tournamentId + '_MATCH_WIN_' + matchId)).data.points == 1
+            && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneo_puntos/$(tournamentId + '_MATCH_WIN_' + matchId)).data.type == 'MATCH_WIN'
+            && (
+              (resource.data.round == parentTournament().totalRounds
+                && parentTournamentAfter().status == 'COMPLETE'
+                && parentTournamentAfter().champion == winner
+                && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneo_puntos/$(tournamentId + '_CHAMPION_' + winner)).data.player == winner
+                && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneo_puntos/$(tournamentId + '_CHAMPION_' + winner)).data.points == parentTournament().players.size())
+              ||
+              (resource.data.round < parentTournament().totalRounds
+                && parentTournamentAfter().status == 'RUNNING'
+                && ((resource.data.position % 2 == 1
+                    && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/r$(resource.data.round + 1)m$(math.ceil(resource.data.position / 2))).data.sourceMatchA == matchId
+                    && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/r$(resource.data.round + 1)m$(math.ceil(resource.data.position / 2))).data.sourceAResolved == true
+                    && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/r$(resource.data.round + 1)m$(math.ceil(resource.data.position / 2))).data.playerA == winner)
+                  || (resource.data.position % 2 == 0
+                    && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/r$(resource.data.round + 1)m$(math.ceil(resource.data.position / 2))).data.sourceMatchB == matchId
+                    && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/r$(resource.data.round + 1)m$(math.ceil(resource.data.position / 2))).data.sourceBResolved == true
+                    && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(tournamentId)/enfrentamientos/r$(resource.data.round + 1)m$(math.ceil(resource.data.position / 2))).data.playerB == winner)))
+            );
+        }
+        // Los participantes pueden sumar/restar de a un punto; alcanzar el objetivo NO cierra el cruce.
+        function validScoreAIncrement() {
+          return isPlayer(appId)
+            && parentTournament().status == 'RUNNING'
+            && parentTournament().players.hasAny([playerName(appId)])
+            && resource.data.status == 'PLAYING'
+            && playerName(appId) in [resource.data.playerA, resource.data.playerB]
+            && resource.data.scoreA is number && resource.data.scoreB is number
+            && resource.data.pointsToWin in [15, 30]
+            && request.resource.data.scoreA in [resource.data.scoreA - 1, resource.data.scoreA + 1]
+            && request.resource.data.scoreA >= 0
+            && request.resource.data.scoreA <= resource.data.pointsToWin
+            && request.resource.data.updatedAt is number
+            && request.resource.data.status == 'PLAYING'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scoreA','updatedAt'])
+            && ((request.resource.data.scoreA == resource.data.scoreA - 1 && resource.data.scoreA > 0)
+              || (request.resource.data.scoreA == resource.data.scoreA + 1
+                && resource.data.scoreA < resource.data.pointsToWin
+                && resource.data.scoreB < resource.data.pointsToWin));
+        }
+        function validScoreBIncrement() {
+          return isPlayer(appId)
+            && parentTournament().status == 'RUNNING'
+            && parentTournament().players.hasAny([playerName(appId)])
+            && resource.data.status == 'PLAYING'
+            && playerName(appId) in [resource.data.playerA, resource.data.playerB]
+            && resource.data.scoreA is number && resource.data.scoreB is number
+            && resource.data.pointsToWin in [15, 30]
+            && request.resource.data.scoreB in [resource.data.scoreB - 1, resource.data.scoreB + 1]
+            && request.resource.data.scoreB >= 0
+            && request.resource.data.scoreB <= resource.data.pointsToWin
+            && request.resource.data.updatedAt is number
+            && request.resource.data.status == 'PLAYING'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scoreB','updatedAt'])
+            && ((request.resource.data.scoreB == resource.data.scoreB - 1 && resource.data.scoreB > 0)
+              || (request.resource.data.scoreB == resource.data.scoreB + 1
+                && resource.data.scoreB < resource.data.pointsToWin
+                && resource.data.scoreA < resource.data.pointsToWin));
+        }
+        // Un participante cierra solo después de llegar al objetivo y confirmar el marcador ya sincronizado.
+        function validParticipantClose() {
+          return isPlayer(appId)
+            && parentTournament().status == 'RUNNING'
+            && parentTournament().players.hasAny([playerName(appId)])
+            && resource.data.status == 'PLAYING'
+            && playerName(appId) in [resource.data.playerA, resource.data.playerB]
+            && request.resource.data.status == 'COMPLETE'
+            && request.resource.data.scoreA == resource.data.scoreA
+            && request.resource.data.scoreB == resource.data.scoreB
+            && request.resource.data.scoreA is number && request.resource.data.scoreB is number
+            && request.resource.data.pointsToWin == resource.data.pointsToWin
+            && (request.resource.data.scoreA > request.resource.data.scoreB ? request.resource.data.scoreA : request.resource.data.scoreB) == resource.data.pointsToWin
+            && request.resource.data.scoreA != request.resource.data.scoreB
+            && request.resource.data.winner == (request.resource.data.scoreA > request.resource.data.scoreB ? resource.data.playerA : resource.data.playerB)
+            && request.resource.data.loser == (request.resource.data.winner == resource.data.playerA ? resource.data.playerB : resource.data.playerA)
+            && request.resource.data.resultType == 'CONFIRMED'
+            && request.resource.data.closedBy == request.auth.uid
+            && request.resource.data.closedAt is number
+            && request.resource.data.updatedAt is number
+            && completionEffectsValid(request.resource.data.winner)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','winner','loser','resultType','closedAt','closedBy','updatedAt']);
+        }
+        function validManualClose() {
+          return canManage()
+            && parentTournament().status == 'RUNNING'
+            && resource.data.status == 'PLAYING'
+            && request.resource.data.status == 'COMPLETE'
+            && request.resource.data.winner in [resource.data.playerA, resource.data.playerB]
+            && request.resource.data.loser == (request.resource.data.winner == resource.data.playerA ? resource.data.playerB : resource.data.playerA)
+            && request.resource.data.scoreA is number && request.resource.data.scoreB is number
+            && request.resource.data.scoreA >= 0 && request.resource.data.scoreB >= 0
+            && request.resource.data.scoreA <= resource.data.pointsToWin && request.resource.data.scoreB <= resource.data.pointsToWin
+            && request.resource.data.scoreA != request.resource.data.scoreB
+            && request.resource.data.winner == (request.resource.data.scoreA > request.resource.data.scoreB ? resource.data.playerA : resource.data.playerB)
+            && request.resource.data.resultType == 'MANUAL'
+            && request.resource.data.closedBy == request.auth.uid
+            && request.resource.data.closedAt is number
+            && request.resource.data.updatedAt is number
+            && completionEffectsValid(request.resource.data.winner)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scoreA','scoreB','status','winner','loser','resultType','closedAt','closedBy','updatedAt']);
+        }
+        function validSourceAdvance() {
+          return resource.data.status == 'WAITING'
+            && parentTournament().status == 'RUNNING'
+            && request.resource.data.tournamentId == resource.data.tournamentId
+            && request.resource.data.id == resource.data.id
+            && request.resource.data.updatedAt is number
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['playerA','playerB','sourceAResolved','sourceBResolved','status','winner','loser','resultType','closedAt','updatedAt'])
+            && (
+              (!resource.data.sourceAResolved
+                && request.resource.data.sourceAResolved == true
+                && sourceAAfter().status in ['COMPLETE','BYE']
+                && sourceAAfter().winner == request.resource.data.playerA
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['playerA','sourceAResolved','status','winner','loser','resultType','closedAt','updatedAt'])
+                && (request.resource.data.sourceBResolved
+                  ? (request.resource.data.playerA is string && request.resource.data.playerB is string && request.resource.data.status == 'PLAYING' && request.resource.data.winner == null && request.resource.data.loser == null && request.resource.data.resultType == null && request.resource.data.closedAt == null)
+                  : (request.resource.data.status == 'WAITING' && request.resource.data.winner == null && request.resource.data.loser == null && request.resource.data.resultType == null && request.resource.data.closedAt == null)))
+              ||
+              (!resource.data.sourceBResolved
+                && request.resource.data.sourceBResolved == true
+                && sourceBAfter().status in ['COMPLETE','BYE']
+                && sourceBAfter().winner == request.resource.data.playerB
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['playerB','sourceBResolved','status','winner','loser','resultType','closedAt','updatedAt'])
+                && (request.resource.data.sourceAResolved
+                  ? (request.resource.data.playerA is string && request.resource.data.playerB is string && request.resource.data.status == 'PLAYING' && request.resource.data.winner == null && request.resource.data.loser == null && request.resource.data.resultType == null && request.resource.data.closedAt == null)
+                  : (request.resource.data.status == 'WAITING' && request.resource.data.winner == null && request.resource.data.loser == null && request.resource.data.resultType == null && request.resource.data.closedAt == null)))
+            )
+            && (admin() || (signedIn() && parentTournament().organizerUid == request.auth.uid) || (isPlayer(appId) && playerName(appId) in parentTournament().players));
+        }
+
+        allow read: if signedIn();
+        // Solo se puede crear la llave al pasar de READY_FOR_DRAW a RUNNING en el mismo commit.
+        allow create: if canManage()
+          && parentTournament().status == 'READY_FOR_DRAW'
+          && parentTournamentAfter().status == 'RUNNING'
+          && request.resource.data.id == matchId
+          && request.resource.data.tournamentId == tournamentId
+          && request.resource.data.pointsToWin == parentTournament().pointsToWin
+          && request.resource.data.round is number
+          && request.resource.data.position is number
+          && request.resource.data.scoreA == 0
+          && request.resource.data.scoreB == 0
+          && request.resource.data.sourceAResolved is bool
+          && request.resource.data.sourceBResolved is bool
+          && (request.resource.data.playerA == null || parentTournament().players.hasAny([request.resource.data.playerA]))
+          && (request.resource.data.playerB == null || parentTournament().players.hasAny([request.resource.data.playerB]))
+          && (request.resource.data.playerA == null || request.resource.data.playerB == null || request.resource.data.playerA != request.resource.data.playerB)
+          && request.resource.data.updatedAt is number
+          && ((request.resource.data.status == 'PLAYING'
+                && request.resource.data.playerA is string
+                && request.resource.data.playerB is string
+                && request.resource.data.playerA != request.resource.data.playerB
+                && request.resource.data.sourceAResolved == true
+                && request.resource.data.sourceBResolved == true
+                && request.resource.data.winner == null
+                && request.resource.data.loser == null)
+            || (request.resource.data.status == 'WAITING'
+                && request.resource.data.winner == null
+                && request.resource.data.loser == null
+                && (!request.resource.data.sourceAResolved || !request.resource.data.sourceBResolved)
+                && !(request.resource.data.playerA is string && request.resource.data.playerB is string))
+            || (request.resource.data.status == 'BYE'
+                && request.resource.data.winner is string
+                && parentTournament().players.hasAny([request.resource.data.winner])
+                && request.resource.data.winner in [request.resource.data.playerA, request.resource.data.playerB]
+                && ((request.resource.data.playerA is string && request.resource.data.playerB == null) || (request.resource.data.playerA == null && request.resource.data.playerB is string))
+                && request.resource.data.sourceAResolved == true
+                && request.resource.data.sourceBResolved == true));
+        allow update: if admin() || validManualClose() || validParticipantClose() || validScoreAIncrement() || validScoreBIncrement() || validSourceAdvance();
+        allow delete: if admin();
+      }
+    }
+
+    // Candado único para evitar que dos administradores creen torneos simultáneos.
+    // El candado solo puede cambiarse si el torneo anterior terminó/canceló y el nuevo existe.
+    match /artifacts/{appId}/public/data/torneos_control/{controlId} {
+      allow read: if signedIn();
+      allow create: if admin()
+        && controlId == 'active'
+        && request.resource.data.activeTournamentId is string
+        && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.activeTournamentId)).data.status == 'SELECTING';
+      allow update: if admin()
+        && controlId == 'active'
+        && request.resource.data.activeTournamentId is string
+        // Recuperación segura si el documento anterior fue borrado manualmente en Firebase Console.
+        && (!exists(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(resource.data.activeTournamentId))
+          || get(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(resource.data.activeTournamentId)).data.status in ['COMPLETE','CANCELLED','ARCHIVED'])
+        && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.activeTournamentId)).data.status == 'SELECTING'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeTournamentId','updatedAt']);
+      allow delete: if admin();
+    }
+
+    // Premios son inmutables e idempotentes: un cruce da exactamente 1 punto y el campeón
+    // recibe exactamente el número de participantes. Se valida el estado posterior al commit.
+    match /artifacts/{appId}/public/data/torneo_puntos/{awardId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.id == awardId
+        && request.resource.data.tournamentId is string
+        && request.resource.data.player is string
+        && request.resource.data.points is number
+        && (
+          (request.resource.data.type == 'MATCH_WIN'
+            && request.resource.data.points == 1
+            && request.resource.data.matchId is string
+            && request.resource.data.seasonNumber is number
+            && request.resource.data.seasonNumber == (getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.keys().hasAny(['seasonNumber']) ? getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.seasonNumber : currentSeason(appId))
+            && awardId == request.resource.data.tournamentId + '_MATCH_WIN_' + request.resource.data.matchId
+            && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)/enfrentamientos/$(request.resource.data.matchId)).data.status == 'COMPLETE'
+            && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)/enfrentamientos/$(request.resource.data.matchId)).data.winner == request.resource.data.player
+            && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.players.hasAny([request.resource.data.player])
+            && (admin()
+              || get(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.organizerUid == request.auth.uid
+              || (isPlayer(appId) && playerName(appId) == request.resource.data.player)))
+          ||
+          (request.resource.data.type == 'CHAMPION'
+            && request.resource.data.seasonNumber is number
+            && request.resource.data.seasonNumber == (getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.keys().hasAny(['seasonNumber']) ? getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.seasonNumber : currentSeason(appId))
+            && request.resource.data.points == getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.players.size()
+            && awardId == request.resource.data.tournamentId + '_CHAMPION_' + request.resource.data.player
+            && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.status == 'COMPLETE'
+            && getAfter(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.champion == request.resource.data.player
+            && (admin()
+              || get(/databases/$(database)/documents/artifacts/$(appId)/public/data/torneos/$(request.resource.data.tournamentId)).data.organizerUid == request.auth.uid
+              || (isPlayer(appId) && playerName(appId) == request.resource.data.player)))
+        );
+      allow update, delete: if admin();
+    }
+
+    match /artifacts/{appId}/public/data/season_config/{docId} {
+      allow read: if signedIn();
+      allow write: if admin();
+    }
+
+    match /artifacts/{appId}/public/data/season_history/{docId} {
+      allow read: if signedIn();
+      allow write, delete: if admin();
+    }
+
+    match /artifacts/{appId}/public/data/hallOfFameTitles/{docId} {
+      allow read: if signedIn();
+      allow write, delete: if admin();
+    }
+
+    match /artifacts/{appId}/public/data/h2h_summary/{docId} {
+      allow read: if admin();
+      allow write, delete: if admin();
+    }
+
+    match /artifacts/{appId}/public/data/auditLogs/{logId} {
+      allow read: if admin();
+      allow create: if admin()
+        || (
+          signedIn()
+          && request.resource.data.tipo == 'ACCESS'
+          && request.resource.data.accion == 'LOGIN'
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.email == request.auth.token.email
+          && request.resource.data.role == 'JUGADOR'
+        )
+        || (
+          isPlayer(appId)
+          && request.resource.data.tipo == 'PLAYER_PROFILE'
+          && request.resource.data.accion == 'ACTUALIZÓ AVATAR'
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.email == request.auth.token.email
+          && request.resource.data.role == 'JUGADOR'
+          && request.resource.data.jugadoresInvolucrados is list
+          && request.resource.data.jugadoresInvolucrados.size() == 1
+          && request.resource.data.jugadoresInvolucrados[0] == playerName(appId)
+        )
+        || (
+          isPlayer(appId)
+          && request.resource.data.tipo == 'MATCH_SUBMISSION'
+          && request.resource.data.accion in ['CARGÓ PARTIDA','CARGÓ PARTIDA OFFLINE / SINCRONIZADA']
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.email == request.auth.token.email
+          && request.resource.data.role == 'JUGADOR'
+          && request.resource.data.matchId is string
+          && request.resource.data.jugadoresInvolucrados is list
+          && request.resource.data.ganadores is list
+          && request.resource.data.perdedores is list
+          && request.resource.data.ptsGanador is number
+          && request.resource.data.ptsPerdedor is number
+          && exists(/databases/$(database)/documents/artifacts/$(appId)/public/data/partidas/$(request.resource.data.matchId))
+          && get(/databases/$(database)/documents/artifacts/$(appId)/public/data/partidas/$(request.resource.data.matchId)).data.creatorUid == request.auth.uid
+          && get(/databases/$(database)/documents/artifacts/$(appId)/public/data/partidas/$(request.resource.data.matchId)).data.jugadorCarga == playerName(appId)
+          && get(/databases/$(database)/documents/artifacts/$(appId)/public/data/partidas/$(request.resource.data.matchId)).data.ganadores == request.resource.data.ganadores
+          && get(/databases/$(database)/documents/artifacts/$(appId)/public/data/partidas/$(request.resource.data.matchId)).data.perdedores == request.resource.data.perdedores
+          && get(/databases/$(database)/documents/artifacts/$(appId)/public/data/partidas/$(request.resource.data.matchId)).data.ptsGanador == request.resource.data.ptsGanador
+          && get(/databases/$(database)/documents/artifacts/$(appId)/public/data/partidas/$(request.resource.data.matchId)).data.ptsPerdedor == request.resource.data.ptsPerdedor
+        );
+      allow update, delete: if admin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
